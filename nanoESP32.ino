@@ -5,7 +5,7 @@
 const char* ssid = "Colby Guest Access";
 
 // Raspberry Pi running SuperCollider
-IPAddress outIp(137, 146, 250, 143);
+IPAddress outIp(137, 146, 183, 226);
 const unsigned int outPort = 57120;
 
 WiFiUDP Udp;
@@ -70,14 +70,14 @@ void loop() {
     float spatialNorm = rawSpatial / 4095.0f;
 
     // serial monitor output
-    Serial.print("A0 raw: ");
+    Serial.print("A0 raw: \t");
     Serial.print(rawReverb);
-    Serial.print(" reverb: ");
+    Serial.print("\t reverb: \t");
     Serial.print(reverbNorm, 3);
 
-    Serial.print(" | A1 raw: ");
+    Serial.print("\t | A1 raw: \t");
     Serial.print(rawSpatial);
-    Serial.print(" spatial: ");
+    Serial.print("\t spatial: \t");
     Serial.println(spatialNorm, 3);
 
     // send reverb only if it changed enough
@@ -88,7 +88,7 @@ void loop() {
 
     // send spatial only if it changed enough
     if (fabs(spatialNorm - lastSpatial) > changeThreshold) {
-      sendOSCFloat("/spatial", spatialNorm);
+      sendOSCFloat("/delay", spatialNorm);
       lastSpatial = spatialNorm;
     }
   }

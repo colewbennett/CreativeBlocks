@@ -1,6 +1,11 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <OSCMessage.h>
+#include "Adafruit_MPR121.h"
+
+#ifndef _BV
+#define _BV(bit) (1 << (bit))
+#endif
 
 const char* ssid = "Colby Guest Access";
 
@@ -9,6 +14,8 @@ IPAddress outIp(137, 146, 183, 226);
 const unsigned int outPort = 57120;
 
 WiFiUDP Udp;
+
+Adafruit_MPR121 cap = Adafruit_MPR121();
 
 // pins
 const int reverbPin = A0;
@@ -32,7 +39,24 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  Serial.println("Connecting...");
+  Serial.println("Adafruit MPR121 Capacitive Touch sensor test");
+
+  // Default address is 0x5A, if tied to 3.3V its 0x5B
+  // If tied to SDA its 0x5C and if SCL then 0x5D
+  if (!cap.begin(0x5A)) {
+    Serial.println("MPR121 not found, check wiring?");
+    while (1);
+  }
+  Serial.println("MPR121 found!");
+
+  // This is generally recommended since it seems to work well for most setups.
+  // Can remove if wanting to manually configure touch channels (CDC and CDT).
+  Serial.println("Running auto configuration.");
+  cap.setAutoconfig(true);
+
+  Serial.println("Initialization complete.");
+
+  Serial.println("Connecting to WiFi...");
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid);
 
@@ -78,7 +102,16 @@ void loop() {
     Serial.print("\t | A1 raw: \t");
     Serial.print(rawSpatial);
     Serial.print("\t spatial: \t");
-    Serial.println(spatialNorm, 3);
+    Serial.print(spatialNorm, 3);
+    Serial.print("\t cap: \t");
+
+    if (cap.touched() & _BV(1)) {
+      Serial.println("ON");
+      sendOSCFloat("/gate", 1);
+    } else {
+      Serial.println("OFF");
+      sendOSCFloat("/gate", 0);
+    }
 
     // send reverb only if it changed enough
     if (fabs(reverbNorm - lastReverb) > changeThreshold) {

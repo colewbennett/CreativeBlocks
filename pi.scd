@@ -56,7 +56,7 @@ s.waitForBoot {
 				\delayFeedback, ~delayFeedback,
 				\delayMix, ~delayMix
 			]);
-			"Sample started".postln;
+			"SAMPLE STARTED".postln;
 		};
 	};
 
@@ -64,7 +64,7 @@ s.waitForBoot {
 		if(~player.notNil) {
 			~player.free;
 			~player = nil;
-			"Sample stopped".postln;
+			"SAMPLE STOPPED".postln;
 		};
 	};
 
@@ -99,13 +99,13 @@ s.waitForBoot {
 
 	// reversed gate: connection turns sound OFF
 	OSCdef(\gateControl, { |msg|
-		var on = msg[1].asInteger;
+		var on = msg[1].asFloat.clip(0, 1).round;
 		if(on == 1) {
 			~stopSample.value;
 		} {
 			~startSample.value;
 		};
-		("GATE -> " ++ on).postln;
+		("GATE -> " ++ ~on).postln;
 	}, '/gate');
 
     "SuperCollider ready.".postln;

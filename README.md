@@ -90,9 +90,6 @@ Install these from the Arduino IDE:
   - OSC by Adrian Freed
   - Adafruit MPR121 by Adafruit
 
-Drivers for auxiliary devices (eg. camera / kinect)
-Python Library Installs
-
 ## Test Code Instructions (WIP)
 
 For each device include test code (in the repo) to check that the component is set up and/or wired correctly and working. Provide instructions on how to run test code for each component.
@@ -111,7 +108,7 @@ If everything went well, you should hear the amen break sample. The two potentio
 
 Using the Colby operated WiFi/ethernet network seems to cause lots of problems. A temporary fix is to use a personal hotspot on your phone, and configure the code to connect to that hotspot.
 
-The SuperCollider code can be run on a computer other than a RPi for testing purposes. The only thing that wouldn't be possible is using the MPR121 connected to the RPi.
+The SuperCollider code can be run on a computer other than a RPi. The only thing that wouldn't be possible is using the MPR121 connected to the RPi.
 
 ## References
 

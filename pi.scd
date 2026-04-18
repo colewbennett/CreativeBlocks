@@ -1,9 +1,11 @@
 s.boot;
+s.quit;
 
 (
 s.waitForBoot {
 
-    ~samplePath = "/home/pi/Downloads/amen-break-120bpm.mp3";
+	~samplePath = "/Users/tristankanitz/repos/CreativeBlocks/amen-break-120bpm.mp3";  // Tristan laptop's filepath
+	// ~samplePath = "/home/pi/Downloads/amen-break-120bpm.mp3";  // pi's filepath
     ~buf = Buffer.read(s, ~samplePath);
 
 	// reverb params
@@ -85,17 +87,20 @@ s.waitForBoot {
 	// start playing by default
 	~startSample.value;
 
+	// OSCdef does not need a specified IP address to listen to
+	~myPort = 57120;
+
 	OSCdef(\reverbControl, { |msg|
 		~wet = msg[1].asFloat.clip(0.0, 1.0);
 		~updateFX.value;
 		("REVERB -> " ++ ~wet).postln;
-	}, '/reverb');
+	}, '/reverb', recvPort: ~myPort);
 
 	OSCdef(\delayControl, { |msg|
 		~delayMix = msg[1].asFloat.clip(0.0, 1.0);
 		~updateFX.value;
 		("DELAY -> " ++ ~delayMix).postln;
-	}, '/delay');
+	}, '/delay', recvPort: ~myPort);
 
 	// reversed gate: connection turns sound OFF
 	OSCdef(\gateControl, { |msg|
@@ -106,9 +111,10 @@ s.waitForBoot {
 			~startSample.value;
 		};
 		("GATE -> " ++ ~on).postln;
-	}, '/gate');
+	}, '/gate', recvPort: ~myPort);
 
     "SuperCollider ready.".postln;
-    ("Language listening on port: " ++ NetAddr.langPort).postln;
+	("Listening for OSC on port " ++ ~myPort).postln;
+
 };
 )

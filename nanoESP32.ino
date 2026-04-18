@@ -7,11 +7,10 @@
 #define _BV(bit) (1 << (bit))
 #endif
 
-const char* ssid = "Colby Guest Access";
-
-// Raspberry Pi running SuperCollider
-IPAddress outIp(137, 146, 183, 226);
-const unsigned int outPort = 57120;
+// const char* ssid = "Colby Guest Access";
+// Tristan's phone hotspot:
+const char* ssid = "tristan";
+const char* passphrase = "password";
 
 WiFiUDP Udp;
 
@@ -19,12 +18,19 @@ Adafruit_MPR121 cap = Adafruit_MPR121();
 
 // pins
 const int reverbPin = A0;
-const int spatialPin = A1;
+const int delayPin = A1;
 
 // optional smoothing / change threshold
 float lastReverb = -1.0f;
-float lastSpatial = -1.0f;
+float lastDelay = -1.0f;
 const float changeThreshold = 0.01f;
+
+int lastTouched = 0;
+
+// Raspberry Pi running SuperCollider
+// IPAddress outIp(137, 146, 183, 226);
+IPAddress outIp(10, 137, 224, 121);  // hotspot IP
+const unsigned int outPort = 57120;
 
 void sendOSCFloat(const char* address, float value) {
   OSCMessage msg(address);
@@ -58,7 +64,8 @@ void setup() {
 
   Serial.println("Connecting to WiFi...");
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid);
+  // WiFi.begin(ssid);  // use this if no passphrase needed
+  WiFi.begin(ssid, passphrase);
 
   int tries = 0;
   while (WiFi.status() != WL_CONNECTED && tries < 60) {
@@ -73,6 +80,7 @@ void setup() {
     Serial.println("Connected!");
     Serial.print("ESP32 IP: ");
     Serial.println(WiFi.localIP());
+    delay(3000);
   } else {
     Serial.print("WiFi failed, status = ");
     Serial.println(WiFi.status());
@@ -88,10 +96,12 @@ void loop() {
     last = millis();
 
     int rawReverb = analogRead(reverbPin);
-    int rawSpatial = analogRead(spatialPin);
+    int rawDelay = analogRead(delayPin);
 
     float reverbNorm = rawReverb / 4095.0f;
-    float spatialNorm = rawSpatial / 4095.0f;
+    float delayNorm = rawDelay / 4095.0f;
+
+    int touched = cap.touched();
 
     // serial monitor output
     Serial.print("A0 raw: \t");
@@ -100,17 +110,23 @@ void loop() {
     Serial.print(reverbNorm, 3);
 
     Serial.print("\t | A1 raw: \t");
-    Serial.print(rawSpatial);
-    Serial.print("\t spatial: \t");
-    Serial.print(spatialNorm, 3);
+    Serial.print(rawDelay);
+    Serial.print("\t delay: \t");
+    Serial.print(delayNorm, 3);
     Serial.print("\t cap: \t");
 
-    if (cap.touched() & _BV(1)) {
+    if (touched > 0 & lastTouched == 0) {
       Serial.println("ON");
       sendOSCFloat("/gate", 1);
-    } else {
+      lastTouched = 1;
+    } else if (touched == 0 & lastTouched == 1) {
       Serial.println("OFF");
       sendOSCFloat("/gate", 0);
+      lastTouched = 0;
+    } else if (lastTouched == 1) {
+      Serial.println("ON");
+    } else {
+      Serial.println("OFF");
     }
 
     // send reverb only if it changed enough
@@ -119,10 +135,10 @@ void loop() {
       lastReverb = reverbNorm;
     }
 
-    // send spatial only if it changed enough
-    if (fabs(spatialNorm - lastSpatial) > changeThreshold) {
-      sendOSCFloat("/delay", spatialNorm);
-      lastSpatial = spatialNorm;
+    // send delay only if it changed enough
+    if (fabs(delayNorm - lastDelay) > changeThreshold) {
+      sendOSCFloat("/delay", delayNorm);
+      lastDelay = delayNorm;
     }
   }
 }

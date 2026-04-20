@@ -88,7 +88,7 @@ s.waitForBoot {
 	~startSample.value;
 
 	// OSCdef does not need a specified IP address to listen to
-	~myPort = 57120;
+	~myPort = 57121;
 
 	OSCdef(\reverbControl, { |msg|
 		~wet = msg[1].asFloat.clip(0.0, 1.0);

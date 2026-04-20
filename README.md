@@ -22,7 +22,7 @@ Our system consists of four blocks that can be placed on four different pads to 
 - Micro USB power supply cable
 - Micro SD card
 - Micro SD card reader
-- Behringer U-PHORIA UMC202HD Audio Interface
+- Behringer U-PHORIA UMC202HD Audio Interface (or any USB audio interface)
 - Quarter inch jack
 - Speakers
 
@@ -40,7 +40,7 @@ Per block:
 - Git
 - Arduino IDE
 - Raspberry Pi Imager
-- SuperCollider (installed on RPi - see Software Setup)
+- SuperCollider (will be installed on RPi - see SuperCollider on RPi)
 
 ## Software Setup
 
@@ -49,12 +49,14 @@ Per block:
 Follow the instructions on this website to install the RPi OS on the micro SD card using the RPi Imager software:
 <https://www.raspberrypi.com/documentation/computers/getting-started.html#installing-the-operating-system>
 
-After the Rpi is running, you’ll want to have it automatically connect to Colby Guest Access. First, get the MAC address of your RPi by typing this into the terminal:
+After the Rpi is running, you’ll want to have it automatically connect to the Colby Guest Access WiFi. First, get the MAC address of your RPi by typing this into the terminal:
 
-ifconfig eth0
+`ifconfig eth0`
 
 Then, follow the instructions on this website to register the RPi for Colby Guest Access:
 <https://colby.teamdynamix.com/TDClient/1928/Portal/KB/ArticleDet?ID=146945>
+
+Alternatively, you can set up WiFi once the RPi is booted using the GUI.
 
 ### Enable I2C on Raspberry Pi
 
@@ -90,19 +92,23 @@ Install these from the Arduino IDE:
   - OSC by Adrian Freed
   - Adafruit MPR121 by Adafruit
 
-## Test Code Instructions (WIP)
+## Test Code Instructions
 
-For each device include test code (in the repo) to check that the component is set up and/or wired correctly and working. Provide instructions on how to run test code for each component.
+To test the MPR121's connectivity, upload the file `MPR121test.ino` to the Nano ESP32 from the Arduino IDE. You should see which pins are being touched in the serial monitor.
+
+To test the potentiometers' connectivity, upload the file `potTest.ino` to the Nano ESP32 from the Arduino IDE. You should see the readings of the analog pins that are connected to the potentiometers in the serial monitor.
 
 ## Demo Operating Instructions
 
-Connect the Arduino, MPR121, and potentiometers as outlined in the circuit diagram.
+Connect the Arduino, MPR121, and potentiometers as outlined in the circuit diagram:
+
+![image of the circuit diagram](milestone5circuit.png)
 
 Run Arduino IDE on your computer and open the file called `nanoESP32.ino`. Make sure the ssid, passphrase, and outIP are configured correctly depending on your WiFi and IP address. Upload the updated code to the Arduino.
 
-Download the file `amen-break-120bpm.mp3`. Run SuperCollider on the RPi and open the file called `pi.scd`. Make sure the path to the mp3 file is correct. While the cursor is hovering over `s.boot;` on line 1, press ctrl-enter. Once the SC server is booted, hover over the space right before the first open parenthesis on line 4, and press ctrl-enter.
+Download the file `amen-break-120bpm.mp3` on the RPi. Run SuperCollider on the RPi and open the file called `pi.scd`. Make sure the path to the mp3 file is correct. While the cursor is hovering over `s.boot;` on line 1, press ctrl-enter. Once the SC server is booted, hover over the space right before the first open parenthesis on line 4, and press ctrl-enter.
 
-If everything went well, you should hear the amen break sample. The two potentiometers should affect the reverb and delay of the sample, and touching the MPR121 should mute the sample.
+If everything went well, you should hear the amen break sample. The two potentiometers should affect the reverb and delay of the sample, and touching the MPR121 at pin 0 should mute the sample.
 
 ## Potential Improvements
 

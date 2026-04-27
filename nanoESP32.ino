@@ -32,13 +32,24 @@ uint16_t currtouched = 0;
 
 // Raspberry Pi running SuperCollider
 // IPAddress outIp(137, 146, 183, 226);
-IPAddress outIp(10, 137, 224, 121);  // Tristan hotspot IP
-// IPAddress outIp(10, 137, 224, 160);  // RPi hotspot IP
+// IPAddress outIp(10, 137, 224, 121);  // Tristan hotspot IP
+IPAddress outIp(10, 137, 224, 160);  // RPi hotspot IP
 const unsigned int outPort = 57121;
 
 void sendOSCFloat(const char* address, float value) {
   OSCMessage msg(address);
   msg.add(value);
+  Udp.beginPacket(outIp, outPort);
+  msg.send(Udp);
+  Udp.endPacket();
+  msg.empty();
+}
+
+void sendOSCFloat(const char* address, float value1, float value2, float value3) {
+  OSCMessage msg(address);
+  msg.add(value1);
+  msg.add(value2);
+  msg.add(value3);
   Udp.beginPacket(outIp, outPort);
   msg.send(Udp);
   Udp.endPacket();
@@ -51,14 +62,16 @@ void checkTouch(uint16_t pin, bool print) {
     if (print) {
       Serial.println("ON");
     }
-    sendOSCFloat("/gate", 1);
+    // sendOSCFloat("/stack", 0, pin, 1);  // block 0
+    sendOSCFloat("/stack", 1, pin, 1);  // block 1
   }
   // if it *was* touched and now *isnt*, alert!
   if (!(currtouched & _BV(pin)) && (lasttouched & _BV(pin)) ) {
     if (print) {
       Serial.println("OFF");
     }
-    sendOSCFloat("/gate", 0);
+    // sendOSCFloat("/stack", 0, pin, 0);  // block 0
+    sendOSCFloat("/stack", 1, pin, 0);  // block 1
   }
   if ((currtouched & _BV(pin)) && (lasttouched & _BV(pin)) ) {
     if (print) {
@@ -151,6 +164,8 @@ void loop() {
     Serial.print("\t cap: \t");
 
     checkTouch(0, 1);
+    checkTouch(1, 1);
+    checkTouch(2, 1);
 
     // reset our state
     lasttouched = currtouched;

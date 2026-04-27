@@ -4,8 +4,8 @@ s.quit;
 (
 s.waitForBoot {
 
-	~samplePath = "/Users/tristankanitz/repos/CreativeBlocks/amen-break-120bpm.mp3";  // Tristan laptop's filepath
-	// ~samplePath = "/home/pi/Downloads/amen-break-120bpm.mp3";  // pi's filepath
+	// ~samplePath = "/Users/tristankanitz/repos/CreativeBlocks/amen-break-120bpm.mp3";  // Tristan laptop's filepath
+	~samplePath = "/home/pi/CreativeBlocks/amen-break-120bpm.mp3";  // pi's filepath
     ~buf = Buffer.read(s, ~samplePath);
 
 	// reverb params
@@ -88,7 +88,7 @@ s.waitForBoot {
 	~startSample.value;
 
 	// OSCdef does not need a specified IP address to listen to
-	~myPort = 57120;
+	~myPort = 57121;
 
 	OSCdef(\reverbControl, { |msg|
 		~wet = msg[1].asFloat.clip(0.0, 1.0);

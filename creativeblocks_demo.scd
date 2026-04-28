@@ -74,6 +74,17 @@ s.waitForBoot {
 	"Audio buffer loading complete.".postln;
 	"".postln;
 
+	// reverb params
+    ~wet = 0.2;
+    ~room = 0.8;
+    ~damp = 0.5;
+    ~amp = 0.8;
+
+	// delay params
+	~delayTime = 0.3;
+	~delayFeedback = 0.4;
+	~delayMix = 0.3;
+
 
 	// =====================================================
 	// SYNTHDEF
@@ -191,7 +202,13 @@ s.waitForBoot {
 
 			~players[pad][stem] = Synth(\stemPlayer, [
 				\bufnum, ~bufs[pad][stem].bufnum,
-				\amp, 0.8
+				\amp, ~amp,
+				\wet, ~wet,
+				\room, ~room,
+				\damp, ~damp,
+				\delayTime, ~delayTime,
+				\delayFeedback, ~delayFeedback,
+				\delayMix, ~delayMix
 			]);
 		} {
 			("Already playing -> pad/song " ++ pad ++ ", block/stem " ++ stem).postln;
@@ -401,6 +418,19 @@ s.waitForBoot {
 		"STOP ALL OSC RECEIVED".postln;
 		~stopAll.value;
 	}, '/stopall', recvPort: ~myPort);
+
+
+	OSCdef(\reverbControl, { |msg|
+		~wet = msg[1].asFloat.clip(0.0, 1.0);
+		~updateFX.value;
+		("REVERB -> " ++ ~wet).postln;
+	}, '/reverb', recvPort: ~myPort);
+
+	OSCdef(\delayControl, { |msg|
+		~delayMix = msg[1].asFloat.clip(0.0, 1.0);
+		~updateFX.value;
+		("DELAY -> " ++ ~delayMix).postln;
+	}, '/delay', recvPort: ~myPort);
 
 
 	// =====================================================

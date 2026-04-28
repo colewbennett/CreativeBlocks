@@ -25,12 +25,16 @@ float lastReverb = -1.0f;
 float lastDelay = -1.0f;
 const float changeThreshold = 0.01f;
 
-int lastTouched = 0;
+// Keeps track of the last pins touched
+// so we know when buttons are 'released'
+uint16_t lasttouched = 0;
+uint16_t currtouched = 0;
 
 // Raspberry Pi running SuperCollider
 // IPAddress outIp(137, 146, 183, 226);
-IPAddress outIp(10, 137, 224, 121);  // hotspot IP
-const unsigned int outPort = 57120;
+// IPAddress outIp(10, 137, 224, 121);  // Tristan hotspot IP
+IPAddress outIp(10, 137, 224, 160);  // RPi hotspot IP
+const unsigned int outPort = 57121;
 
 void sendOSCFloat(const char* address, float value) {
   OSCMessage msg(address);
@@ -39,6 +43,49 @@ void sendOSCFloat(const char* address, float value) {
   msg.send(Udp);
   Udp.endPacket();
   msg.empty();
+}
+
+void sendOSCFloat(const char* address, float value1, float value2, float value3) {
+  OSCMessage msg(address);
+  msg.add(value1);
+  msg.add(value2);
+  msg.add(value3);
+  Udp.beginPacket(outIp, outPort);
+  msg.send(Udp);
+  Udp.endPacket();
+  msg.empty();
+}
+
+void checkTouch(uint16_t pin, bool print) {
+  // it if *is* touched and *wasnt* touched before, alert!
+  if ((currtouched & _BV(pin)) && !(lasttouched & _BV(pin)) ) {
+    if (print) {
+      Serial.println("ON");
+    }
+    // sendOSCFloat("/stack", 0, pin, 1);  // block 0
+    sendOSCFloat("/stack", 1, pin, 1);  // block 1
+  }
+  // if it *was* touched and now *isnt*, alert!
+  if (!(currtouched & _BV(pin)) && (lasttouched & _BV(pin)) ) {
+    if (print) {
+      Serial.println("OFF");
+    }
+    // sendOSCFloat("/stack", 0, pin, 0);  // block 0
+    sendOSCFloat("/stack", 1, pin, 0);  // block 1
+  }
+  if ((currtouched & _BV(pin)) && (lasttouched & _BV(pin)) ) {
+    if (print) {
+      Serial.println("ON");
+    }
+  }
+  if (!(currtouched & _BV(pin)) && !(lasttouched & _BV(pin)) ) {
+    if (print) {
+      Serial.println("OFF");
+    }
+  }
+  if (!print) {
+    Serial.println();
+  }
 }
 
 void setup() {
@@ -101,7 +148,8 @@ void loop() {
     float reverbNorm = rawReverb / 4095.0f;
     float delayNorm = rawDelay / 4095.0f;
 
-    int touched = cap.touched();
+    // Get the currently touched pads
+    currtouched = cap.touched();
 
     // serial monitor output
     Serial.print("A0 raw: \t");
@@ -115,19 +163,12 @@ void loop() {
     Serial.print(delayNorm, 3);
     Serial.print("\t cap: \t");
 
-    if (touched > 0 & lastTouched == 0) {
-      Serial.println("ON");
-      sendOSCFloat("/gate", 1);
-      lastTouched = 1;
-    } else if (touched == 0 & lastTouched == 1) {
-      Serial.println("OFF");
-      sendOSCFloat("/gate", 0);
-      lastTouched = 0;
-    } else if (lastTouched == 1) {
-      Serial.println("ON");
-    } else {
-      Serial.println("OFF");
-    }
+    checkTouch(0, 1);
+    checkTouch(1, 1);
+    checkTouch(2, 1);
+
+    // reset our state
+    lasttouched = currtouched;
 
     // send reverb only if it changed enough
     if (fabs(reverbNorm - lastReverb) > changeThreshold) {

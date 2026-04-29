@@ -33,7 +33,7 @@ uint16_t currtouched = 0;
 // Raspberry Pi running SuperCollider
 // IPAddress outIp(137, 146, 183, 226);
 // IPAddress outIp(10, 137, 224, 121);  // Tristan hotspot IP
-IPAddress outIp(10, 137, 224, 160);  // RPi hotspot IP
+IPAddress outIp(172, 17, 199, 160);  // RPi hotspot IP
 const unsigned int outPort = 57121;
 
 void sendOSCFloat(const char* address, float value) {
@@ -64,6 +64,7 @@ void checkTouch(uint16_t pin, bool print) {
     }
     // sendOSCFloat("/stack", 0, pin, 1);  // block 0
     sendOSCFloat("/stack", 1, pin, 1);  // block 1
+    // sendOSCFloat("/stack", 2, pin, 1);  // block 2
   }
   // if it *was* touched and now *isnt*, alert!
   if (!(currtouched & _BV(pin)) && (lasttouched & _BV(pin)) ) {
@@ -72,6 +73,7 @@ void checkTouch(uint16_t pin, bool print) {
     }
     // sendOSCFloat("/stack", 0, pin, 0);  // block 0
     sendOSCFloat("/stack", 1, pin, 0);  // block 1
+    // sendOSCFloat("/stack", 2, pin, 0);  // block 2
   }
   if ((currtouched & _BV(pin)) && (lasttouched & _BV(pin)) ) {
     if (print) {

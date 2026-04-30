@@ -14,7 +14,6 @@ SC_PORT = 57121
 
 sc = SimpleUDPClient(SC_IP, SC_PORT)
 
-
 # =====================================================
 # MPR121 SETUP
 # =====================================================
@@ -22,23 +21,18 @@ sc = SimpleUDPClient(SC_IP, SC_PORT)
 i2c = busio.I2C(board.SCL, board.SDA)
 mpr121 = MPR121(i2c)
 
-# We are using MPR slots 0 through 5:
-#
 # Pad 0 / Song 1 = slots 0 and 1
 # Pad 1 / Song 2 = slots 2 and 3
 # Pad 2 / Song 3 = slots 4 and 5
 #
 # SuperCollider decides:
 # left only  = vocals
-# right only = melody + bass
+# right only = melody
 # both       = drums
 
 WATCHED_PINS = [0, 1, 2, 3, 4, 5]
 
-last_states = {
-    pin: False for pin in WATCHED_PINS
-}
-
+last_states = {pin: False for pin in WATCHED_PINS}
 
 # =====================================================
 # STARTUP PRINTS
@@ -58,7 +52,6 @@ print("/mpr slot on")
 print("")
 print(f"Sending OSC to {SC_IP}:{SC_PORT}")
 print("====================================================")
-
 
 # =====================================================
 # MAIN LOOP

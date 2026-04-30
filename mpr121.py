@@ -1,87 +1,120 @@
+# creativeblocks_mpr121.py
+
 import time
 import board
 import busio
-
-from adafruit_mpr121 import MPR121
+import adafruit_mpr121
 from pythonosc.udp_client import SimpleUDPClient
 
-# =====================================================
-# SUPERCOLLIDER OSC TARGET
-# =====================================================
+# ================================
+# CONFIG
+# ================================
 
-SC_IP = "127.0.0.1"
-SC_PORT = 57121
+SC_IP = "127.0.0.1"      # SuperCollider on same Raspberry Pi
+SC_PORT = 57121          # must match SuperCollider ~myPort
 
-sc = SimpleUDPClient(SC_IP, SC_PORT)
+POLL_DELAY = 0.05        # seconds
 
+# MPR121 pad mapping:
+# Pad 0 / Song 1 = electrodes 0, 1
+# Pad 1 / Song 2 = electrodes 2, 3
+# Pad 2 / Song 3 = electrodes 4, 5
 
-# =====================================================
-# MPR121 SETUP
-# =====================================================
-
-i2c = busio.I2C(board.SCL, board.SDA)
-mpr121 = MPR121(i2c)
-
-# We are using MPR slots 0 through 5:
-#
-# Pad 0 / Song 1 = slots 0 and 1
-# Pad 1 / Song 2 = slots 2 and 3
-# Pad 2 / Song 3 = slots 4 and 5
-#
-# SuperCollider decides:
-# left only  = vocals
-# right only = melody + bass
-# both       = drums
-
-WATCHED_PINS = [0, 1, 2, 3, 4, 5]
-
-last_states = {
-    pin: False for pin in WATCHED_PINS
+PAD_SLOTS = {
+    0: (0, 1),
+    1: (2, 3),
+    2: (4, 5),
 }
 
+USED_ELECTRODES = [0, 1, 2, 3, 4, 5]
 
-# =====================================================
-# STARTUP PRINTS
-# =====================================================
+# ================================
+# SETUP
+# ================================
 
-print("====================================================")
-print("CREATIVEBLOCKS MPR121 PYTHON SENDER")
-print("====================================================")
-print("Watching MPR121 pins 0, 1, 2, 3, 4, 5")
-print("")
-print("Pad 0 / Song 1 = pins 0 and 1")
-print("Pad 1 / Song 2 = pins 2 and 3")
-print("Pad 2 / Song 3 = pins 4 and 5")
-print("")
-print("Sending OSC messages in this format:")
-print("/mpr slot on")
-print("")
+print("Starting CreativeBlocks MPR121 reader...")
+
+i2c = busio.I2C(board.SCL, board.SDA)
+mpr121 = adafruit_mpr121.MPR121(i2c)
+
+client = SimpleUDPClient(SC_IP, SC_PORT)
+
 print(f"Sending OSC to {SC_IP}:{SC_PORT}")
-print("====================================================")
+print("Pad 0 uses MPR pins 0 and 1")
+print("Pad 1 uses MPR pins 2 and 3")
+print("Pad 2 uses MPR pins 4 and 5")
+print("OSC format: /mpr slot on")
+print("Example: /mpr 0 1")
+
+# Store previous state so we only send changes
+previous_states = {electrode: False for electrode in USED_ELECTRODES}
+
+# ================================
+# HELPERS
+# ================================
+
+def send_mpr(electrode, is_touched):
+    value = 1 if is_touched else 0
+    client.send_message("/mpr", [electrode, value])
+
+    state_text = "ON" if is_touched else "OFF"
+    print(f"Sent /mpr {electrode} {value}  ({state_text})")
 
 
-# =====================================================
+def print_pad_state(states):
+    print("Current pad states:")
+
+    for pad, (left, right) in PAD_SLOTS.items():
+        left_on = states[left]
+        right_on = states[right]
+
+        if left_on and right_on:
+            detected = "DRUMS"
+        elif left_on:
+            detected = "VOCALS"
+        elif right_on:
+            detected = "MELODY"
+        else:
+            detected = "EMPTY"
+
+        print(
+            f"  Pad {pad}: "
+            f"left pin {left}={left_on}, "
+            f"right pin {right}={right_on} -> {detected}"
+        )
+
+    print("-" * 40)
+
+
+# ================================
 # MAIN LOOP
-# =====================================================
+# ================================
 
-while True:
-    try:
-        for pin in WATCHED_PINS:
-            touched = mpr121[pin].value
+try:
+    print("Listening for touches...")
+    print("-" * 40)
 
-            if touched != last_states[pin]:
-                if touched:
-                    print(f"Pin {pin} Touched")
-                    sc.send_message("/mpr", [pin, 1])
-                else:
-                    print(f"Pin {pin} Released")
-                    sc.send_message("/mpr", [pin, 0])
+    while True:
+        current_states = {}
 
-                last_states[pin] = touched
+        for electrode in USED_ELECTRODES:
+            touched = mpr121[electrode].value
+            current_states[electrode] = touched
 
-        time.sleep(0.01)
+            if touched != previous_states[electrode]:
+                send_mpr(electrode, touched)
+                previous_states[electrode] = touched
 
-    except KeyboardInterrupt:
-        print("\nExiting.")
-        sc.send_message("/stopall", [1])
-        break
+        print_pad_state(current_states)
+
+        time.sleep(POLL_DELAY)
+
+except KeyboardInterrupt:
+    print("\nStopping CreativeBlocks MPR121 reader...")
+
+    # Tell SuperCollider all used electrodes are off
+    for electrode in USED_ELECTRODES:
+        client.send_message("/mpr", [electrode, 0])
+        print(f"Sent /mpr {electrode} 0")
+
+    print("Done.")

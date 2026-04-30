@@ -4,32 +4,10 @@ s.freeAll;
 (
 s.waitForBoot {
 
-	// =====================================================
-	// CREATIVEBLOCKS DEMO
-	// 3 pads / 3 songs
-	//
-	// Pad 0 = Song 1 = MPR slots 0 and 1
-	// Pad 1 = Song 2 = MPR slots 2 and 3
-	// Pad 2 = Song 3 = MPR slots 4 and 5
-	//
-	// BOTH pins active = Drums
-	// LEFT / first pin active = Vocals
-	// RIGHT / second pin active = Melody
-	//
-	// Files:
-	// drums1_mono.mp3, vocals1_mono.mp3, mel1_mono.mp3
-	// drums2_mono.mp3, vocals2_mono.mp3, mel2_mono.mp3
-	// drums3_mono.mp3, vocals3_mono.mp3, mel3_mono.mp3
-	// =====================================================
-
 	"====================================================".postln;
 	"CREATIVEBLOCKS DEMO BOOTING".postln;
 	"PAD = SONG, PINS = STEM".postln;
 	"====================================================".postln;
-
-	// =====================================================
-	// FILE PATHS
-	// =====================================================
 
 	~paths = [
 		[
@@ -52,37 +30,17 @@ s.waitForBoot {
 	~numPads = 3;
 	~numStems = 3;
 
-	~stemNames = [
-		"Drums",
-		"Vocals",
-		"Melody"
-	];
+	~stemNames = ["Drums", "Vocals", "Melody"];
 
-	// Each pad uses two MPR slots: left and right
 	~padSlots = [
-		[0, 1], // Pad 0 / Song 1
-		[2, 3], // Pad 1 / Song 2
-		[4, 5]  // Pad 2 / Song 3
+		[0, 1],
+		[2, 3],
+		[4, 5]
 	];
 
-	// Stem mapping
-	~stemBoth = 0;  // both points active = drums
-	~stemLeft = 1;  // left only = vocals
-	~stemRight = 2; // right only = melody
-
-	"Configured layout:".postln;
-	"Pad 0 = Song 1 = MPR slots 0 and 1".postln;
-	"Pad 1 = Song 2 = MPR slots 2 and 3".postln;
-	"Pad 2 = Song 3 = MPR slots 4 and 5".postln;
-	"".postln;
-	"Both pins active = Drums".postln;
-	"Left/first pin active only = Vocals".postln;
-	"Right/second pin active only = Melody".postln;
-	"".postln;
-
-	// =====================================================
-	// LOAD AUDIO BUFFERS
-	// =====================================================
+	~stemBoth = 0;
+	~stemLeft = 1;
+	~stemRight = 2;
 
 	"Loading audio buffers...".postln;
 
@@ -90,24 +48,13 @@ s.waitForBoot {
 		Array.fill(~numStems, { |stem|
 			var path;
 			path = ~paths[song][stem];
-
-			("Loading file for song " ++ (song + 1) ++ ", stem " ++ stem ++ " / " ++ ~stemNames[stem] ++ ":").postln;
-			path.postln;
-
+			("Loading: " ++ path).postln;
 			Buffer.read(s, path);
 		});
 	});
 
 	s.sync;
-
 	"Audio buffer loading complete.".postln;
-	"".postln;
-
-	// =====================================================
-	// SYNTHDEF
-	// =====================================================
-
-	"Creating SynthDef...".postln;
 
 	SynthDef(\stemPlayer, {
 		|out=0, bufnum=0, amp=0.8, rate=1.0, wet=0.12, room=0.7, damp=0.5|
@@ -117,58 +64,53 @@ s.waitForBoot {
 		sig = PlayBuf.ar(
 			numChannels: 1,
 			bufnum: bufnum,
-			rate: BufRateScale.kr(bufnum) * rate,
+			rate: BufRateScale.kr(bufnum) * Lag.kr(rate, 0.1),
 			loop: 1
 		);
 
-		// mono file -> both ears
-		sig = sig ! 2;
+		// mono track centered in both ears
+		sig = Pan2.ar(sig, 0);
 
 		sig = sig * amp;
 
 		dry = sig;
 		rev = FreeVerb.ar(sig, wet, room, damp);
-
 		mix = (dry * (1 - wet)) + (rev * wet);
 
 		Out.ar(out, mix);
 	}).add;
 
 	s.sync;
-
 	"SynthDef ready.".postln;
-	"".postln;
 
-	// =====================================================
-	// STATE
-	// =====================================================
-
-	"Initializing state arrays...".postln;
-
-	// MPR slot state, slots 0 through 5
 	~mprActive = Array.fill(6, { false });
 
-	// ~padActive[pad][stem]
 	~padActive = Array.fill(~numPads, {
 		Array.fill(~numStems, { false });
 	});
 
-	// ~players[pad][stem]
 	~players = Array.fill(~numPads, {
 		Array.fill(~numStems, { nil });
 	});
 
-	// Each stem has its own tempo and reverb values.
-	// Drums, vocals, melody values apply across songs.
 	~tempoValues = Array.fill(~numStems, { 1.0 });
 	~reverbValues = Array.fill(~numStems, { 0.12 });
 
-	"State initialized.".postln;
-	"".postln;
+	~normalizeStemId = { |incomingId|
+		var stem;
+		incomingId = incomingId.asInteger;
 
-	// =====================================================
-	// PRINT CURRENT STATE
-	// =====================================================
+		// Accept either:
+		// 0,1,2 from direct testing
+		// or 1,2,3 from ESP32 blocks
+		if((incomingId >= 1) && (incomingId <= 3)) {
+			stem = incomingId - 1;
+		} {
+			stem = incomingId;
+		};
+
+		stem;
+	};
 
 	~printState = {
 		"---------------- CURRENT STATE ----------------".postln;
@@ -185,34 +127,24 @@ s.waitForBoot {
 			};
 		};
 
-		"MPR slot states:".postln;
-		6.do { |slot|
-			("    Slot " ++ slot ++ " active = " ++ ~mprActive[slot]).postln;
-		};
-
 		"Knob values by stem:".postln;
+
 		~numStems.do { |stem|
 			(
-				"    Stem " ++ stem ++ " / " ++ ~stemNames[stem] ++
+				"    " ++ ~stemNames[stem] ++
 				": tempo = " ++ ~tempoValues[stem] ++
 				", reverb = " ++ ~reverbValues[stem]
 			).postln;
 		};
 
 		"------------------------------------------------".postln;
-		"".postln;
 	};
-
-	// =====================================================
-	// AUDIO FUNCTIONS
-	// =====================================================
 
 	~startStem = { |pad, stem|
 		if(~players[pad][stem].isNil) {
 			(
 				"STARTING AUDIO -> Song " ++ (pad + 1) ++
-				", Stem " ++ stem ++
-				" / " ++ ~stemNames[stem]
+				", " ++ ~stemNames[stem]
 			).postln;
 
 			~players[pad][stem] = Synth(\stemPlayer, [
@@ -221,16 +153,6 @@ s.waitForBoot {
 				\rate, ~tempoValues[stem],
 				\wet, ~reverbValues[stem]
 			]);
-
-			(
-				"Now playing: Song " ++ (pad + 1) ++
-				" - " ++ ~stemNames[stem]
-			).postln;
-		} {
-			(
-				"Already playing -> Song " ++ (pad + 1) ++
-				", " ++ ~stemNames[stem]
-			).postln;
 		};
 	};
 
@@ -238,17 +160,11 @@ s.waitForBoot {
 		if(~players[pad][stem].notNil) {
 			(
 				"STOPPING AUDIO -> Song " ++ (pad + 1) ++
-				", Stem " ++ stem ++
-				" / " ++ ~stemNames[stem]
+				", " ++ ~stemNames[stem]
 			).postln;
 
 			~players[pad][stem].free;
 			~players[pad][stem] = nil;
-
-			(
-				"Stopped: Song " ++ (pad + 1) ++
-				" - " ++ ~stemNames[stem]
-			).postln;
 		};
 	};
 
@@ -261,7 +177,7 @@ s.waitForBoot {
 				);
 
 				(
-					"Updated active player -> Song " ++ (pad + 1) ++
+					"UPDATED -> Song " ++ (pad + 1) ++
 					", " ++ ~stemNames[stem] ++
 					", tempo = " ++ ~tempoValues[stem] ++
 					", reverb = " ++ ~reverbValues[stem]
@@ -271,7 +187,7 @@ s.waitForBoot {
 	};
 
 	~stopAll = {
-		"EMERGENCY STOP: stopping all audio and resetting state.".postln;
+		"STOPPING ALL AUDIO".postln;
 
 		~numPads.do { |pad|
 			~numStems.do { |stem|
@@ -288,13 +204,7 @@ s.waitForBoot {
 		~printState.value;
 	};
 
-	// =====================================================
-	// REBUILD AUDIO STATE
-	// =====================================================
-
 	~rebuildAudioState = {
-		"Rebuilding audio state...".postln;
-
 		~numPads.do { |pad|
 			~numStems.do { |stem|
 				if(~padActive[pad][stem]) {
@@ -308,10 +218,6 @@ s.waitForBoot {
 		~printState.value;
 	};
 
-	// =====================================================
-	// MPR SLOT DECODING
-	// =====================================================
-
 	~decodePadFromSlots = { |pad|
 		var leftSlot, rightSlot, leftOn, rightOn;
 
@@ -321,46 +227,26 @@ s.waitForBoot {
 		leftOn = ~mprActive[leftSlot];
 		rightOn = ~mprActive[rightSlot];
 
-		(
-			"Decoding Pad " ++ pad ++
-			" / Song " ++ (pad + 1) ++
-			": left slot " ++ leftSlot ++ " = " ++ leftOn ++
-			", right slot " ++ rightSlot ++ " = " ++ rightOn
-		).postln;
-
-		// clear previous state for this pad
 		~numStems.do { |stem|
 			~padActive[pad][stem] = false;
 		};
 
 		if(leftOn && rightOn) {
 			~padActive[pad][~stemBoth] = true;
-
-			(
-				"Pad " ++ pad ++ " detected BOTH pins -> " ++
-				~stemNames[~stemBoth]
-			).postln;
+			("Pad " ++ pad ++ " -> Drums").postln;
 		} {
 			if(leftOn && rightOn.not) {
 				~padActive[pad][~stemLeft] = true;
-
-				(
-					"Pad " ++ pad ++ " detected LEFT/FIRST pin only -> " ++
-					~stemNames[~stemLeft]
-				).postln;
+				("Pad " ++ pad ++ " -> Vocals").postln;
 			};
 
 			if(rightOn && leftOn.not) {
 				~padActive[pad][~stemRight] = true;
-
-				(
-					"Pad " ++ pad ++ " detected RIGHT/SECOND pin only -> " ++
-					~stemNames[~stemRight]
-				).postln;
+				("Pad " ++ pad ++ " -> Melody").postln;
 			};
 
 			if(leftOn.not && rightOn.not) {
-				("Pad " ++ pad ++ " has no active stem.").postln;
+				("Pad " ++ pad ++ " -> Empty").postln;
 			};
 		};
 	};
@@ -373,20 +259,10 @@ s.waitForBoot {
 		~rebuildAudioState.value;
 	};
 
-	// =====================================================
-	// OSC SETUP
-	// =====================================================
-
 	~myPort = 57121;
-
-	("Opening UDP port " ++ ~myPort ++ "...").postln;
 	thisProcess.openUDPPort(~myPort);
-	("Listening for OSC on port " ++ ~myPort).postln;
-	"".postln;
 
-	// =====================================================
-	// /mpr slot on
-	// =====================================================
+	("Listening for OSC on port " ++ ~myPort).postln;
 
 	OSCdef(\mprControl, { |msg, time, addr, recvPort|
 		var slot, on;
@@ -394,84 +270,32 @@ s.waitForBoot {
 		"".postln;
 		"================ MPR OSC RECEIVED ================".postln;
 		("Raw message: " ++ msg).postln;
-		("From address: " ++ addr).postln;
 
 		slot = msg[1].asInteger;
 		on = msg[2].asInteger;
 
-		("Parsed message -> MPR slot: " ++ slot ++ ", on: " ++ on).postln;
-
 		if((slot >= 0) && (slot < 6)) {
 			~mprActive[slot] = on == 1;
-
-			if(on == 1) {
-				("MPR slot " ++ slot ++ " is now ACTIVE.").postln;
-			} {
-				("MPR slot " ++ slot ++ " is now INACTIVE.").postln;
-			};
-
+			("MPR slot " ++ slot ++ " = " ++ ~mprActive[slot]).postln;
 			~decodeAllPadsFromMPR.value;
 		} {
-			"BAD MPR MESSAGE: slot index out of range. Expected 0 through 5.".postln;
+			"BAD MPR MESSAGE".postln;
 			msg.postln;
 		};
 
 		"==================================================".postln;
-		"".postln;
 
 	}, '/mpr', recvPort: ~myPort);
 
-	// =====================================================
-	// OPTIONAL DIRECT CONTROL
-	// /pad padIndex stemId on
-	// stemId: 0=drums, 1=vocals, 2=melody
-	// =====================================================
-
-	OSCdef(\padControl, { |msg, time, addr, recvPort|
-		var pad, stem, on;
-
-		"".postln;
-		"================ PAD OSC RECEIVED ================".postln;
-		("Raw message: " ++ msg).postln;
-		("From address: " ++ addr).postln;
-
-		pad = msg[1].asInteger;
-		stem = msg[2].asInteger;
-		on = msg[3].asInteger;
-
-		("Parsed message -> pad: " ++ pad ++ ", stem: " ++ stem ++ ", on: " ++ on).postln;
-
-		if(
-			(pad >= 0) && (pad < ~numPads) &&
-			(stem >= 0) && (stem < ~numStems)
-		) {
-			~padActive[pad][stem] = on == 1;
-			~rebuildAudioState.value;
-		} {
-			"BAD PAD MESSAGE: index out of range.".postln;
-			msg.postln;
-		};
-
-		"==================================================".postln;
-		"".postln;
-
-	}, '/pad', recvPort: ~myPort);
-
-	// =====================================================
-	// /tempo stemId value
-	//
-	// value 0.0 = 100%
-	// value 1.0 = 150%
-	// =====================================================
-
 	OSCdef(\tempoControl, { |msg, time, addr, recvPort|
-		var stem, rawValue, mappedRate;
+		var incomingId, stem, rawValue, mappedRate;
 
 		"".postln;
 		"=============== TEMPO OSC RECEIVED ===============".postln;
 		("Raw message: " ++ msg).postln;
 
-		stem = msg[1].asInteger;
+		incomingId = msg[1].asInteger;
+		stem = ~normalizeStemId.value(incomingId);
 		rawValue = msg[2].asFloat.clip(0.0, 1.0);
 
 		if((stem >= 0) && (stem < ~numStems)) {
@@ -480,38 +304,32 @@ s.waitForBoot {
 			~tempoValues[stem] = mappedRate;
 
 			(
-				"Tempo knob updated -> Stem " ++ stem ++
+				"Tempo incoming ID " ++ incomingId ++
+				" -> stem " ++ stem ++
 				" / " ++ ~stemNames[stem] ++
 				", raw = " ++ rawValue ++
-				", playback rate = " ++ mappedRate
+				", rate = " ++ mappedRate
 			).postln;
 
 			~updateStemParams.value(stem);
 		} {
-			"BAD TEMPO MESSAGE: stem index out of range.".postln;
+			"BAD TEMPO MESSAGE".postln;
 			msg.postln;
 		};
 
 		"==================================================".postln;
-		"".postln;
 
 	}, '/tempo', recvPort: ~myPort);
 
-	// =====================================================
-	// /reverb stemId value
-	//
-	// value 0.0 = dry
-	// value 1.0 = lots of reverb
-	// =====================================================
-
 	OSCdef(\reverbControl, { |msg, time, addr, recvPort|
-		var stem, rawValue, mappedWet;
+		var incomingId, stem, rawValue, mappedWet;
 
 		"".postln;
 		"=============== REVERB OSC RECEIVED ==============".postln;
 		("Raw message: " ++ msg).postln;
 
-		stem = msg[1].asInteger;
+		incomingId = msg[1].asInteger;
+		stem = ~normalizeStemId.value(incomingId);
 		rawValue = msg[2].asFloat.clip(0.0, 1.0);
 
 		if((stem >= 0) && (stem < ~numStems)) {
@@ -520,7 +338,8 @@ s.waitForBoot {
 			~reverbValues[stem] = mappedWet;
 
 			(
-				"Reverb knob updated -> Stem " ++ stem ++
+				"Reverb incoming ID " ++ incomingId ++
+				" -> stem " ++ stem ++
 				" / " ++ ~stemNames[stem] ++
 				", raw = " ++ rawValue ++
 				", wet = " ++ mappedWet
@@ -528,55 +347,46 @@ s.waitForBoot {
 
 			~updateStemParams.value(stem);
 		} {
-			"BAD REVERB MESSAGE: stem index out of range.".postln;
+			"BAD REVERB MESSAGE".postln;
 			msg.postln;
 		};
 
 		"==================================================".postln;
-		"".postln;
 
 	}, '/reverb', recvPort: ~myPort);
 
-	// =====================================================
-	// /stopall 1
-	// =====================================================
+	OSCdef(\padControl, { |msg, time, addr, recvPort|
+		var pad, stem, on;
+
+		pad = msg[1].asInteger;
+		stem = ~normalizeStemId.value(msg[2].asInteger);
+		on = msg[3].asInteger;
+
+		if(
+			(pad >= 0) && (pad < ~numPads) &&
+			(stem >= 0) && (stem < ~numStems)
+		) {
+			~padActive[pad][stem] = on == 1;
+			~rebuildAudioState.value;
+		} {
+			"BAD PAD MESSAGE".postln;
+			msg.postln;
+		};
+
+	}, '/pad', recvPort: ~myPort);
 
 	OSCdef(\stopAllControl, { |msg|
-		"".postln;
-		"STOP ALL OSC RECEIVED".postln;
 		~stopAll.value;
 	}, '/stopall', recvPort: ~myPort);
 
-	// =====================================================
-	// STARTUP COMPLETE
-	// =====================================================
-
 	"====================================================".postln;
-	"CREATIVEBLOCKS SUPERCOLLIDER READY".postln;
+	"CREATIVEBLOCKS READY".postln;
 	"====================================================".postln;
-	("Listening on UDP/OSC port: " ++ ~myPort).postln;
-	"".postln;
-
-	"Expected MPR messages:".postln;
-	"/mpr slot on".postln;
-	"Example: /mpr 0 1  -> Pad 0 left pin = vocals1".postln;
-	"Example: /mpr 1 1  -> Pad 0 right pin = mel1".postln;
-	"Example: /mpr 0 1 and /mpr 1 1 together -> drums1".postln;
-	"".postln;
-
-	"Expected knob messages:".postln;
-	"/tempo stemId value".postln;
-	"/reverb stemId value".postln;
-	"stemId: 0=drums, 1=vocals, 2=melody".postln;
-	"Example: /tempo 0 1.0".postln;
-	"Example: /reverb 2 0.8".postln;
-	"".postln;
-
-	"Manual tests:".postln;
-	"~mprActive[0] = true; ~decodeAllPadsFromMPR.value; // vocals1".postln;
-	"~mprActive[1] = true; ~decodeAllPadsFromMPR.value; // drums1 if slot 0 also true".postln;
-	"~mprActive[0] = false; ~decodeAllPadsFromMPR.value; // mel1 if slot 1 still true".postln;
-	"~stopAll.value;".postln;
+	"Expected MPR: /mpr slot on".postln;
+	"Expected tempo from ESP32: /tempo 1-3 value".postln;
+	"Expected reverb from ESP32: /reverb 1-3 value".postln;
+	"1=drums, 2=vocals, 3=melody".postln;
+	"Tempo maps 0.0 -> 100%, 1.0 -> 150%".postln;
 	"====================================================".postln;
 
 	~printState.value;

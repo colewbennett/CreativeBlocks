@@ -39,18 +39,6 @@ last_states = {
     pin: False for pin in WATCHED_PINS
 }
 
-files = [
-    "drums1",
-    "drums2",
-    "drums3",
-    "mel1",
-    "mel2",
-    "mel3",
-    "vocals1",
-    "vocals2",
-    "vocals3"
-]
-
 
 # =====================================================
 # STARTUP PRINTS
@@ -65,8 +53,8 @@ print("Pad 0 / Song 1 = pins 0 and 1")
 print("Pad 1 / Song 2 = pins 2 and 3")
 print("Pad 2 / Song 3 = pins 4 and 5")
 print("")
-# print("Sending OSC messages in this format:")
-# print("/mpr slot on")
+print("Sending OSC messages in this format:")
+print("/mpr slot on")
 print("")
 print(f"Sending OSC to {SC_IP}:{SC_PORT}")
 print("====================================================")
@@ -84,10 +72,10 @@ while True:
             if touched != last_states[pin]:
                 if touched:
                     print(f"Pin {pin} Touched")
-                    sc.send_message("/play", files[pin])
+                    sc.send_message("/mpr", [pin, 1])
                 else:
                     print(f"Pin {pin} Released")
-                    sc.send_message("/stop", files[pin])
+                    sc.send_message("/mpr", [pin, 0])
 
                 last_states[pin] = touched
 

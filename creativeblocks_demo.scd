@@ -1,7 +1,11 @@
 (
 // ================================
 // CreativeBlocks SuperCollider Demo
-// mono mp3 version: drums1_mono.mp3
+// PAD = song
+// PIN 1 = vocals
+// PIN 2 = mix
+// PIN 1 + PIN 2 = drums
+// Files: vocals1_mono.mp3, mix1_mono.mp3, drums1_mono.mp3
 // ================================
 
 s.options.numOutputBusChannels = 2;
@@ -12,27 +16,12 @@ s.waitForBoot({
 
     "=== CreativeBlocks starting ===".postln;
 
-    // ----------------
-    // file setup
-    // ----------------
-
     ~audioPath = "/home/pi/Downloads/";
 
     ~trackNames = [
-        "drums1_mono.mp3",
-        "vocals1_mono.mp3",
-        "bass1_mono.mp3",
-        "melody1_mono.mp3",
-
-        "drums2_mono.mp3",
-        "vocals2_mono.mp3",
-        "bass2_mono.mp3",
-        "melody2_mono.mp3",
-
-        "drums3_mono.mp3",
-        "vocals3_mono.mp3",
-        "bass3_mono.mp3",
-        "melody3_mono.mp3"
+        "vocals1_mono.mp3", "mix1_mono.mp3", "drums1_mono.mp3",
+        "vocals2_mono.mp3", "mix2_mono.mp3", "drums2_mono.mp3",
+        "vocals3_mono.mp3", "mix3_mono.mp3", "drums3_mono.mp3"
     ];
 
     ~buffers = Dictionary.new;
@@ -48,10 +37,6 @@ s.waitForBoot({
 
     "=== all buffers loaded ===".postln;
 
-    // ----------------
-    // SynthDef
-    // ----------------
-
     SynthDef(\stemPlayer, { |out=0, bufnum=0, amp=0.6, rate=1.0, revMix=0.0|
         var sig, wet;
 
@@ -62,10 +47,8 @@ s.waitForBoot({
             loop: 1
         );
 
-        // mono to both ears
         sig = sig ! 2;
 
-        // reverb
         wet = FreeVerb.ar(sig, mix: revMix, room: 0.85, damp: 0.45);
 
         Out.ar(out, wet * amp);
@@ -73,9 +56,33 @@ s.waitForBoot({
 
     s.sync;
 
-    // ----------------
-    // helper functions
-    // ----------------
+    ~trackForPadAndPins = { |padNum, pin1, pin2|
+        var layer;
+
+        padNum = padNum.asInteger;
+        pin1 = pin1.asInteger;
+        pin2 = pin2.asInteger;
+
+        layer = if((pin1 == 1) && (pin2 == 1), {
+            "drums";
+        }, {
+            if(pin1 == 1, {
+                "vocals";
+            }, {
+                if(pin2 == 1, {
+                    "mix";
+                }, {
+                    nil;
+                });
+            });
+        });
+
+        if(layer.notNil, {
+            layer ++ padNum.asString ++ "_mono.mp3";
+        }, {
+            nil;
+        });
+    };
 
     ~playTrack = { |trackName|
         if(~buffers[trackName].notNil, {
@@ -103,91 +110,116 @@ s.waitForBoot({
         });
     };
 
-    ~setTempo = { |trackName, knobValue|
+    ~stopPad = { |padNum|
+        ["vocals", "mix", "drums"].do({ |layer|
+            ~stopTrack.(layer ++ padNum.asString ++ "_mono.mp3");
+        });
+    };
+
+    ~updatePad = { |padNum, pin1, pin2|
+        var targetTrack;
+
+        targetTrack = ~trackForPadAndPins.(padNum, pin1, pin2);
+
+        ("PAD " ++ padNum ++ " pin1=" ++ pin1 ++ " pin2=" ++ pin2 ++ " -> " ++ targetTrack).postln;
+
+        // only one layer per pad at a time
+        ~stopPad.(padNum);
+
+        if(targetTrack.notNil, {
+            ~playTrack.(targetTrack);
+        }, {
+            ("PAD " ++ padNum ++ " empty").postln;
+        });
+    };
+
+    ~setTempoForPad = { |padNum, knobValue|
         var rate;
+
         knobValue = knobValue.clip(0, 1);
         rate = 1.0 + (knobValue * 0.5);
 
-        if(~players[trackName].notNil, {
-            ~players[trackName].set(\rate, rate);
-            ("TEMPO " ++ trackName ++ " = " ++ rate).postln;
-        }, {
-            ("tempo ignored, track not playing: " ++ trackName).postln;
+        ["vocals", "mix", "drums"].do({ |layer|
+            var trackName = layer ++ padNum.asString ++ "_mono.mp3";
+
+            if(~players[trackName].notNil, {
+                ~players[trackName].set(\rate, rate);
+                ("TEMPO " ++ trackName ++ " = " ++ rate).postln;
+            });
         });
     };
 
-    ~setReverb = { |trackName, knobValue|
+    ~setReverbForPad = { |padNum, knobValue|
         var mix;
+
         mix = knobValue.clip(0, 1);
 
-        if(~players[trackName].notNil, {
-            ~players[trackName].set(\revMix, mix);
-            ("REVERB " ++ trackName ++ " = " ++ mix).postln;
-        }, {
-            ("reverb ignored, track not playing: " ++ trackName).postln;
+        ["vocals", "mix", "drums"].do({ |layer|
+            var trackName = layer ++ padNum.asString ++ "_mono.mp3";
+
+            if(~players[trackName].notNil, {
+                ~players[trackName].set(\revMix, mix);
+                ("REVERB " ++ trackName ++ " = " ++ mix).postln;
+            });
         });
     };
 
-    // ----------------
-    // OSC input
-    // ----------------
-    // Expected Python messages:
+    // ================================
+    // OSC INPUT
+    // ================================
     //
-    // Play:
-    // /play drums1
+    // Python should send:
     //
-    // Stop:
-    // /stop drums1
+    // /pad 1 1 0    -> pad 1, pin 1 touched, pin 2 not touched = vocals1
+    // /pad 1 0 1    -> pad 1, pin 2 touched = mix1
+    // /pad 1 1 1    -> pad 1, both touched = drums1
+    // /pad 1 0 0    -> pad 1 empty = stop pad 1
     //
-    // Tempo:
-    // /tempo drums1 0.75
+    // /tempo 1 0.0  -> pad 1 normal speed
+    // /tempo 1 1.0  -> pad 1 150% speed
     //
-    // Reverb:
-    // /reverb drums1 0.4
-    //
-    // Track name should be WITHOUT "_mono.mp3"
-    // Example: drums1, vocals2, melody3
+    // /reverb 1 0.0 -> pad 1 dry
+    // /reverb 1 1.0 -> pad 1 full reverb
 
-    OSCdef(\play, { |msg|
-        var name;
-        name = msg[1].asString ++ "_mono.mp3";
-        ~playTrack.(name);
-    }, "/play");
+    OSCdef(\padUpdate, { |msg|
+        var padNum, pin1, pin2;
 
-    OSCdef(\stop, { |msg|
-        var name;
-        name = msg[1].asString ++ "_mono.mp3";
-        ~stopTrack.(name);
-    }, "/stop");
+        padNum = msg[1].asInteger;
+        pin1 = msg[2].asInteger;
+        pin2 = msg[3].asInteger;
+
+        ~updatePad.(padNum, pin1, pin2);
+    }, "/pad");
 
     OSCdef(\tempo, { |msg|
-        var name, value;
-        name = msg[1].asString ++ "_mono.mp3";
+        var padNum, value;
+
+        padNum = msg[1].asInteger;
         value = msg[2].asFloat;
-        ~setTempo.(name, value);
+
+        ~setTempoForPad.(padNum, value);
     }, "/tempo");
 
     OSCdef(\reverb, { |msg|
-        var name, value;
-        name = msg[1].asString ++ "_mono.mp3";
+        var padNum, value;
+
+        padNum = msg[1].asInteger;
         value = msg[2].asFloat;
-        ~setReverb.(name, value);
+
+        ~setReverbForPad.(padNum, value);
     }, "/reverb");
 
-    // ----------------
-    // manual test commands
-    // ----------------
-    // Run these one at a time in SC if needed:
-    //
-    // ~playTrack.("drums1_mono.mp3");
-    // ~setTempo.("drums1_mono.mp3", 1.0);
-    // ~setReverb.("drums1_mono.mp3", 0.7);
-    // ~stopTrack.("drums1_mono.mp3");
-
     "=== CreativeBlocks ready ===".postln;
-    "OSC: /play drums1 | /stop drums1 | /tempo drums1 0-1 | /reverb drums1 0-1".postln;
+    "OSC examples: /pad 1 1 0 | /pad 1 0 1 | /pad 1 1 1 | /tempo 1 0.5 | /reverb 1 0.8".postln;
 
-    // keep alive
+    // manual tests:
+    // ~updatePad.(1, 1, 0); // vocals1
+    // ~updatePad.(1, 0, 1); // mix1
+    // ~updatePad.(1, 1, 1); // drums1
+    // ~updatePad.(1, 0, 0); // stop pad 1
+    // ~setTempoForPad.(1, 1.0);
+    // ~setReverbForPad.(1, 0.7);
+
     Routine({
         loop {
             1.wait;

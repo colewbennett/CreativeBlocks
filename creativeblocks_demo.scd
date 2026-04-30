@@ -4,41 +4,10 @@ s.freeAll;
 (
 s.waitForBoot {
 
-	// =====================================================
-	// CREATIVEBLOCKS DEMO
-	// Updated to work with existing ESP32 code
-	//
-	// MPR from Python/RPi:
-	// /mpr slot on
-	//
-	// Stack from ESP32:
-	// /stack blockId pin on
-	//
-	// Existing ESP32 knob messages:
-	// /reverb value
-	// /delay value
-	//
-	// Since ESP32 knobs do NOT send blockId:
-	// this file uses the most recently touched /stack block
-	// as the active knob target.
-	//
-	// /delay controls tempo:
-	// 0.0 = 100%
-	// 1.0 = 150%
-	//
-	// /reverb controls reverb:
-	// 0.0 = dry
-	// 1.0 = wet
-	// =====================================================
-
 	"====================================================".postln;
 	"CREATIVEBLOCKS DEMO BOOTING".postln;
-	"UPDATED ESP32 KNOB SUPPORT".postln;
+	"BLOCK-SPECIFIC TEMPO + REVERB ENABLED".postln;
 	"====================================================".postln;
-
-	// =====================================================
-	// FILE PATHS
-	// =====================================================
 
 	~paths = [
 		[
@@ -61,33 +30,17 @@ s.waitForBoot {
 	~numPads = 3;
 	~numBlocks = 3;
 
-	~stemNames = [
-		"Drums",
-		"Vocals",
-		"Melody + Bass"
-	];
+	~stemNames = ["Drums", "Vocals", "Melody"];
 
-	// Each pad uses two MPR slots: left and right
 	~padSlots = [
 		[0, 1],
 		[2, 3],
 		[4, 5]
 	];
 
-	// Stem mapping
-	~blockBoth = 0;  // both points active = drums
-	~blockLeft = 1;  // left only = vocals
-	~blockRight = 2; // right only = melody + bass
-
-	// ESP32 knob fallback target.
-	// Your ESP32 knob messages are /reverb value and /delay value,
-	// so they do not identify which block sent them.
-	// This gets updated whenever /stack blockId pin on is received.
-	~activeKnobBlock = 1;
-
-	// =====================================================
-	// LOAD AUDIO BUFFERS
-	// =====================================================
+	~blockBoth = 0;  // drums
+	~blockLeft = 1;  // vocals
+	~blockRight = 2; // melody
 
 	"Loading audio buffers...".postln;
 
@@ -95,21 +48,13 @@ s.waitForBoot {
 		Array.fill(~numBlocks, { |stem|
 			var path;
 			path = ~paths[song][stem];
-
-			("Loading file: " ++ path).postln;
+			("Loading: " ++ path).postln;
 			Buffer.read(s, path);
 		});
 	});
 
 	s.sync;
-
 	"Audio buffer loading complete.".postln;
-
-	// =====================================================
-	// SYNTHDEF
-	// =====================================================
-
-	"Creating SynthDef...".postln;
 
 	SynthDef(\stemPlayer, {
 		|out=0, bufnum=0, amp=0.8, rate=1.0, wet=0.12, room=0.7, damp=0.5|
@@ -123,7 +68,7 @@ s.waitForBoot {
 			loop: 1
 		);
 
-		// mono file -> centered stereo, both ears
+		// mono -> both ears
 		sig = Pan2.ar(sig, 0);
 
 		sig = sig * amp;
@@ -132,17 +77,11 @@ s.waitForBoot {
 		rev = FreeVerb.ar(sig, wet, room, damp);
 		mix = (dry * (1 - wet)) + (rev * wet);
 
-		// IMPORTANT: output processed mix, not raw signal
 		Out.ar(out, mix);
 	}).add;
 
 	s.sync;
-
 	"SynthDef ready.".postln;
-
-	// =====================================================
-	// STATE
-	// =====================================================
 
 	~mprActive = Array.fill(6, { false });
 
@@ -156,31 +95,6 @@ s.waitForBoot {
 
 	~tempoValues = Array.fill(~numBlocks, { 1.0 });
 	~reverbValues = Array.fill(~numBlocks, { 0.12 });
-
-	// Track ESP32 /stack touches too, just for knob targeting.
-	~stackActive = Array.fill(~numBlocks, {
-		Array.fill(12, { false });
-	});
-
-	// =====================================================
-	// HELPERS
-	// =====================================================
-
-	~normalizeBlockId = { |incomingId|
-		var block;
-
-		incomingId = incomingId.asInteger;
-
-		// Supports either 0,1,2 or 1,2,3.
-		// Your shown ESP32 sends block 1.
-		if((incomingId >= 1) && (incomingId <= 3)) {
-			block = incomingId - 1;
-		} {
-			block = incomingId;
-		};
-
-		block.clip(0, ~numBlocks - 1);
-	};
 
 	~printState = {
 		"---------------- CURRENT STATE ----------------".postln;
@@ -197,12 +111,11 @@ s.waitForBoot {
 			};
 		};
 
-		("Active knob target block = " ++ ~activeKnobBlock ++ " / " ++ ~stemNames[~activeKnobBlock]).postln;
-
-		"Knob values by block/stem:".postln;
+		"Block controls:".postln;
 		~numBlocks.do { |block|
 			(
-				"    Block " ++ block ++ " / " ++ ~stemNames[block] ++
+				"    Block " ++ block ++
+				" / " ++ ~stemNames[block] ++
 				": tempo = " ++ ~tempoValues[block] ++
 				", reverb = " ++ ~reverbValues[block]
 			).postln;
@@ -214,9 +127,8 @@ s.waitForBoot {
 	~startStem = { |pad, stem|
 		if(~players[pad][stem].isNil) {
 			(
-				"STARTING AUDIO -> Song " ++ (pad + 1) ++
-				", Block " ++ stem ++
-				" / " ++ ~stemNames[stem]
+				"STARTING -> Song " ++ (pad + 1) ++
+				", " ++ ~stemNames[stem]
 			).postln;
 
 			~players[pad][stem] = Synth(\stemPlayer, [
@@ -231,9 +143,8 @@ s.waitForBoot {
 	~stopStem = { |pad, stem|
 		if(~players[pad][stem].notNil) {
 			(
-				"STOPPING AUDIO -> Song " ++ (pad + 1) ++
-				", Block " ++ stem ++
-				" / " ++ ~stemNames[stem]
+				"STOPPING -> Song " ++ (pad + 1) ++
+				", " ++ ~stemNames[stem]
 			).postln;
 
 			~players[pad][stem].free;
@@ -250,8 +161,8 @@ s.waitForBoot {
 				);
 
 				(
-					"UPDATED ACTIVE PLAYER -> Song " ++ (pad + 1) ++
-					", " ++ ~stemNames[stem] ++
+					"UPDATED -> " ++ ~stemNames[stem] ++
+					" on Song " ++ (pad + 1) ++
 					", tempo = " ++ ~tempoValues[stem] ++
 					", reverb = " ++ ~reverbValues[stem]
 				).postln;
@@ -262,38 +173,38 @@ s.waitForBoot {
 	~setTempo = { |block, rawValue|
 		var mappedRate;
 
+		block = block.asInteger;
 		rawValue = rawValue.asFloat.clip(0.0, 1.0);
 
 		if((block >= 0) && (block < ~numBlocks)) {
 			mappedRate = rawValue.linlin(0.0, 1.0, 1.0, 1.5);
-
 			~tempoValues[block] = mappedRate;
 
 			(
-				"TEMPO UPDATED -> Block " ++ block ++
+				"TEMPO -> Block " ++ block ++
 				" / " ++ ~stemNames[block] ++
 				", raw = " ++ rawValue ++
-				", playback rate = " ++ mappedRate
+				", rate = " ++ mappedRate
 			).postln;
 
 			~updateStemParams.value(block);
 		} {
-			"BAD TEMPO BLOCK INDEX".postln;
+			"BAD TEMPO MESSAGE: block must be 0, 1, or 2".postln;
 		};
 	};
 
 	~setReverb = { |block, rawValue|
 		var mappedWet;
 
+		block = block.asInteger;
 		rawValue = rawValue.asFloat.clip(0.0, 1.0);
 
 		if((block >= 0) && (block < ~numBlocks)) {
 			mappedWet = rawValue.linlin(0.0, 1.0, 0.0, 0.75);
-
 			~reverbValues[block] = mappedWet;
 
 			(
-				"REVERB UPDATED -> Block " ++ block ++
+				"REVERB -> Block " ++ block ++
 				" / " ++ ~stemNames[block] ++
 				", raw = " ++ rawValue ++
 				", wet = " ++ mappedWet
@@ -301,12 +212,12 @@ s.waitForBoot {
 
 			~updateStemParams.value(block);
 		} {
-			"BAD REVERB BLOCK INDEX".postln;
+			"BAD REVERB MESSAGE: block must be 0, 1, or 2".postln;
 		};
 	};
 
 	~stopAll = {
-		"EMERGENCY STOP: stopping all audio and resetting state.".postln;
+		"STOPPING ALL".postln;
 
 		~numPads.do { |pad|
 			~numBlocks.do { |stem|
@@ -352,20 +263,20 @@ s.waitForBoot {
 
 		if(leftOn && rightOn) {
 			~padActive[pad][~blockBoth] = true;
-			("Pad " ++ pad ++ " detected BOTH -> Drums").postln;
+			("Pad " ++ pad ++ " -> Drums").postln;
 		} {
 			if(leftOn && rightOn.not) {
 				~padActive[pad][~blockLeft] = true;
-				("Pad " ++ pad ++ " detected LEFT -> Vocals").postln;
+				("Pad " ++ pad ++ " -> Vocals").postln;
 			};
 
 			if(rightOn && leftOn.not) {
 				~padActive[pad][~blockRight] = true;
-				("Pad " ++ pad ++ " detected RIGHT -> Melody + Bass").postln;
+				("Pad " ++ pad ++ " -> Melody").postln;
 			};
 
 			if(leftOn.not && rightOn.not) {
-				("Pad " ++ pad ++ " empty").postln;
+				("Pad " ++ pad ++ " -> Empty").postln;
 			};
 		};
 	};
@@ -378,232 +289,94 @@ s.waitForBoot {
 		~rebuildAudioState.value;
 	};
 
-	// =====================================================
-	// OSC SETUP
-	// =====================================================
-
 	~myPort = 57121;
-
-	("Opening UDP port " ++ ~myPort ++ "...").postln;
 	thisProcess.openUDPPort(~myPort);
-	("Listening for OSC on port " ++ ~myPort).postln;
+	("Listening on UDP port " ++ ~myPort).postln;
 
-	// =====================================================
 	// /mpr slot on
-	// From Raspberry Pi MPR121 Python
-	// =====================================================
-
-	OSCdef(\mprControl, { |msg, time, addr, recvPort|
+	OSCdef(\mprControl, { |msg|
 		var slot, on;
 
 		"".postln;
-		"================ MPR OSC RECEIVED ================".postln;
-		("Raw message: " ++ msg).postln;
+		"================ MPR RECEIVED ================".postln;
+		("Raw: " ++ msg).postln;
 
 		slot = msg[1].asInteger;
 		on = msg[2].asInteger;
 
 		if((slot >= 0) && (slot < 6)) {
 			~mprActive[slot] = on == 1;
-			("MPR slot " ++ slot ++ " active = " ++ ~mprActive[slot]).postln;
+			("MPR slot " ++ slot ++ " = " ++ ~mprActive[slot]).postln;
 			~decodeAllPadsFromMPR.value;
 		} {
-			"BAD MPR MESSAGE: expected slot 0 through 5.".postln;
+			"BAD MPR MESSAGE".postln;
 			msg.postln;
 		};
 
-		"==================================================".postln;
+		"==============================================".postln;
 
 	}, '/mpr', recvPort: ~myPort);
 
-	// =====================================================
-	// /stack blockId pin on
-	// From ESP32 blocks
-	//
-	// This does NOT control pad audio directly here.
-	// It lets SC know which block's knobs should be active.
-	// =====================================================
-
-	OSCdef(\stackControl, { |msg, time, addr, recvPort|
-		var incomingBlock, block, pin, on;
+	// /tempo blockId value
+	OSCdef(\tempoControl, { |msg|
+		var block, value;
 
 		"".postln;
-		"================ STACK OSC RECEIVED ==============".postln;
-		("Raw message: " ++ msg).postln;
+		"================ TEMPO RECEIVED ================".postln;
+		("Raw: " ++ msg).postln;
 
-		incomingBlock = msg[1].asInteger;
-		block = ~normalizeBlockId.value(incomingBlock);
-		pin = msg[2].asInteger;
-		on = msg[3].asInteger;
+		block = msg[1].asInteger;
+		value = msg[2].asFloat;
 
-		if((block >= 0) && (block < ~numBlocks)) {
-			if((pin >= 0) && (pin < 12)) {
-				~stackActive[block][pin] = on == 1;
-			};
+		~setTempo.value(block, value);
 
-			if(on == 1) {
-				~activeKnobBlock = block;
-
-				(
-					"Active knob target set to block " ++ block ++
-					" / " ++ ~stemNames[block] ++
-					" from incoming block ID " ++ incomingBlock
-				).postln;
-			} {
-				(
-					"Stack release from block " ++ block ++
-					" / " ++ ~stemNames[block]
-				).postln;
-			};
-		} {
-			"BAD STACK MESSAGE: block index out of range.".postln;
-			msg.postln;
-		};
-
-		"==================================================".postln;
-
-	}, '/stack', recvPort: ~myPort);
-
-	// =====================================================
-	// /delay value
-	// Existing ESP32 tempo potentiometer
-	// =====================================================
-
-	OSCdef(\delayAsTempoControl, { |msg, time, addr, recvPort|
-		var rawValue;
-
-		"".postln;
-		"=============== DELAY/TEMPO OSC RECEIVED =========".postln;
-		("Raw message: " ++ msg).postln;
-
-		rawValue = msg[1].asFloat;
-
-		~setTempo.value(~activeKnobBlock, rawValue);
-
-		"==================================================".postln;
-
-	}, '/delay', recvPort: ~myPort);
-
-	// =====================================================
-	// /reverb value
-	// Existing ESP32 reverb potentiometer
-	//
-	// Also accepts /reverb block value if sent later.
-	// =====================================================
-
-	OSCdef(\reverbControl, { |msg, time, addr, recvPort|
-		var block, rawValue;
-
-		"".postln;
-		"=============== REVERB OSC RECEIVED ==============".postln;
-		("Raw message: " ++ msg).postln;
-
-		if(msg.size == 2) {
-			block = ~activeKnobBlock;
-			rawValue = msg[1].asFloat;
-		} {
-			block = ~normalizeBlockId.value(msg[1].asInteger);
-			rawValue = msg[2].asFloat;
-		};
-
-		~setReverb.value(block, rawValue);
-
-		"==================================================".postln;
-
-	}, '/reverb', recvPort: ~myPort);
-
-	// =====================================================
-	// Optional compatibility:
-	// /tempo block value
-	// =====================================================
-
-	OSCdef(\tempoControl, { |msg, time, addr, recvPort|
-		var block, rawValue;
-
-		"".postln;
-		"=============== TEMPO OSC RECEIVED ===============".postln;
-		("Raw message: " ++ msg).postln;
-
-		if(msg.size == 2) {
-			block = ~activeKnobBlock;
-			rawValue = msg[1].asFloat;
-		} {
-			block = ~normalizeBlockId.value(msg[1].asInteger);
-			rawValue = msg[2].asFloat;
-		};
-
-		~setTempo.value(block, rawValue);
-
-		"==================================================".postln;
+		"================================================".postln;
 
 	}, '/tempo', recvPort: ~myPort);
 
-	// =====================================================
-	// Optional direct pad test:
-	// /pad padIndex blockId on
-	// =====================================================
-
-	OSCdef(\padControl, { |msg, time, addr, recvPort|
-		var pad, block, on;
+	// /reverb blockId value
+	OSCdef(\reverbControl, { |msg|
+		var block, value;
 
 		"".postln;
-		"================ PAD OSC RECEIVED ================".postln;
-		("Raw message: " ++ msg).postln;
+		"================ REVERB RECEIVED ================".postln;
+		("Raw: " ++ msg).postln;
 
-		pad = msg[1].asInteger;
-		block = ~normalizeBlockId.value(msg[2].asInteger);
-		on = msg[3].asInteger;
+		block = msg[1].asInteger;
+		value = msg[2].asFloat;
 
-		if(
-			(pad >= 0) && (pad < ~numPads) &&
-			(block >= 0) && (block < ~numBlocks)
-		) {
-			~padActive[pad][block] = on == 1;
-			~rebuildAudioState.value;
-		} {
-			"BAD PAD MESSAGE".postln;
-			msg.postln;
-		};
+		~setReverb.value(block, value);
 
-		"==================================================".postln;
+		"=================================================".postln;
 
-	}, '/pad', recvPort: ~myPort);
+	}, '/reverb', recvPort: ~myPort);
 
-	// =====================================================
-	// /stopall 1
-	// =====================================================
+	// optional: /stack blockId pin on
+	OSCdef(\stackControl, { |msg|
+		"".postln;
+		"================ STACK RECEIVED ================".postln;
+		("Raw: " ++ msg).postln;
+		"Stack received for debugging only; tempo/reverb now use blockId directly.".postln;
+		"===============================================".postln;
+	}, '/stack', recvPort: ~myPort);
 
 	OSCdef(\stopAllControl, { |msg|
-		"".postln;
-		"STOP ALL OSC RECEIVED".postln;
 		~stopAll.value;
 	}, '/stopall', recvPort: ~myPort);
 
-	// =====================================================
-	// STARTUP COMPLETE
-	// =====================================================
-
 	"====================================================".postln;
-	"CREATIVEBLOCKS SUPERCOLLIDER READY".postln;
+	"CREATIVEBLOCKS READY".postln;
 	"====================================================".postln;
-	("Listening on UDP/OSC port: " ++ ~myPort).postln;
+	"Expected ESP32 messages:".postln;
+	"/tempo 0 value   -> drums".postln;
+	"/tempo 1 value   -> vocals".postln;
+	"/tempo 2 value   -> melody".postln;
+	"/reverb 0 value  -> drums".postln;
+	"/reverb 1 value  -> vocals".postln;
+	"/reverb 2 value  -> melody".postln;
 	"".postln;
-	"Supported messages:".postln;
-	"/mpr slot on".postln;
-	"/stack blockId pin on".postln;
-	"/delay value    -> tempo for active block".postln;
-	"/reverb value   -> reverb for active block".postln;
-	"/tempo value    -> tempo for active block".postln;
-	"".postln;
-	"Tempo mapping: 0.0 = 100%, 1.0 = 150%".postln;
-	"Reverb mapping: 0.0 = dry, 1.0 = wet".postln;
-	"".postln;
-	"Manual tests:".postln;
-	"~mprActive[0] = true; ~decodeAllPadsFromMPR.value;".postln;
-	"~mprActive[1] = true; ~decodeAllPadsFromMPR.value;".postln;
-	"~setTempo.value(1, 1.0);".postln;
-	"~setReverb.value(1, 1.0);".postln;
-	"~stopAll.value;".postln;
+	"Tempo: 0.0 = 100%, 1.0 = 150%".postln;
+	"Reverb: 0.0 = dry, 1.0 = wet".postln;
 	"====================================================".postln;
 
 	~printState.value;

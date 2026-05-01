@@ -102,7 +102,7 @@ To test the potentiometers' connectivity, upload the file `potTest.ino` to the N
 
 Connect the Arduino, MPR121, and potentiometers as outlined in the circuit diagram:
 
-![image of the circuit diagram](milestone5circuit.png)
+![image of the circuit diagram](circuitCLAS.png)
 
 Run Arduino IDE on your computer and open the file called `nanoESP32.ino`. Make sure the ssid, passphrase, and outIP are configured correctly depending on your WiFi and IP address. Upload the updated code to the Arduino.
 

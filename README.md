@@ -115,7 +115,27 @@ Run Arduino IDE on your computer and open the file called `blockId.ino`. Make su
 
 Download the file `audio.zip` on the RPi. *Note: add audio files to repo* Run SuperCollider on the RPi and open the file called `creativeblocks_demo.scd`. Make sure the path to the mp3 files are correct. While the cursor is hovering over `s.boot;` on line 1, press ctrl-enter. Once the SC server is booted, hover over the space right before the first open parenthesis on line 4, and press ctrl-enter.
 
-If everything went well, you should see in the SC terminal that CreativeBlocks is ready. The two potentiometers should affect the reverb and tempo of the block's designated instrument, and touching one of the MPR121's pins should unmute that pin's designated sample.
+Then, copy the file `mpr121.py` into the RPi's Desktop, open a terminal, cd into the Desktop, and run the Python code:
+
+`python3 mpr121.py`
+
+The first time you attempt this, the terminal may say something about not having a virtual environment and not having the right Python libraries. First create a virtual environment (I'd recommend doing this on the Desktop for easy access):
+
+`python3 -m venv Desktop`
+
+Then activate the venv:
+
+`source ./bin/activate`
+
+Install the required Python libraries:
+
+`pip3 install board`
+
+`pip3 install Adafruit-Blinka`
+
+Then try running mpr121.py again.
+
+If everything went well, you should see in the SC terminal that CreativeBlocks is ready, and in the RPi terminal that the Python code is running. The two potentiometers should affect the reverb and tempo of the block's designated instrument, and touching one of the MPR121's pins should unmute that pin's designated sample.
 
 ## Potential Improvements
 

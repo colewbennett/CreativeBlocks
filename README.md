@@ -8,7 +8,7 @@ Making a physical audio workstation.
 
 ## Project overview
 
-Our system consists of four blocks that can be placed on four different pads to make different combinations of samples. Blocks can also be stacked, which expands the creative output of the physical audio workstation. Each block has two knobs that changes the reverb and delay levels of its designated sample.
+Our system consists of four blocks that can be placed on four different pads to make different combinations of samples. Blocks can also be stacked, which expands the creative output of the physical audio workstation. Each block has two knobs that changes the reverb and tempo levels of its designated sample.
 
 ## Requirements
 
@@ -49,14 +49,14 @@ Per block:
 Follow the instructions on this website to install the RPi OS on the micro SD card using the RPi Imager software:
 <https://www.raspberrypi.com/documentation/computers/getting-started.html#installing-the-operating-system>
 
-After the Rpi is running, you’ll want to have it automatically connect to the Colby Guest Access WiFi. First, get the MAC address of your RPi by typing this into the terminal:
+You should install the OS recommended by the Imager, which should be **Raspberry Pi OS (64-bit)**.
+
+After the Rpi is running, you’ll want to have it automatically connect to the Colby Guest Access WiFi. Alternatively, you can set up WiFi once the RPi is booted using the GUI. To set up Colby Guest Access, get the MAC address of your RPi by typing this into the terminal:
 
 `ifconfig eth0`
 
 Then, follow the instructions on this website to register the RPi for Colby Guest Access:
 <https://colby.teamdynamix.com/TDClient/1928/Portal/KB/ArticleDet?ID=146945>
-
-Alternatively, you can set up WiFi once the RPi is booted using the GUI.
 
 ### Enable I2C on Raspberry Pi
 
@@ -74,7 +74,14 @@ To confirm the sensor can be detected later, run:
 
 `i2cdetect -y 1`
 
-If the MPR121 is connected correctly, it should usually appear at address 0x5a.
+If the MPR121 is connected correctly, it should usually appear at address 0x5a. To connect the MPR121 to the RPi, refer to this website for the RPi's pinout: <https://pinout.xyz/> and connect the pins shown in the table below:
+
+| MPR121 | RPi               |
+| ------ | ----------------- |
+| VIN    | Pin 1 (3v3 power) |
+| GND    | Pin 6 (ground)    |
+| SDA    | Pin 3 (SDA)       |
+| SCL    | Pin 5 (SCL)       |
 
 ### SuperCollider on RPi
 
@@ -104,21 +111,29 @@ Connect the Arduino, MPR121, and potentiometers as outlined in the circuit diagr
 
 ![image of the circuit diagram](circuitCLAS.png)
 
-Run Arduino IDE on your computer and open the file called `nanoESP32.ino`. Make sure the ssid, passphrase, and outIP are configured correctly depending on your WiFi and IP address. Upload the updated code to the Arduino.
+Run Arduino IDE on your computer and open the file called `blockId.ino`. Make sure the ssid, passphrase, and outIP are configured correctly depending on your WiFi and IP address. Upload the updated code to the Arduino.
 
-Download the file `amen-break-120bpm.mp3` on the RPi. Run SuperCollider on the RPi and open the file called `pi.scd`. Make sure the path to the mp3 file is correct. While the cursor is hovering over `s.boot;` on line 1, press ctrl-enter. Once the SC server is booted, hover over the space right before the first open parenthesis on line 4, and press ctrl-enter.
+Download the file `audio.zip` on the RPi. *Note: add audio files to repo* Run SuperCollider on the RPi and open the file called `creativeblocks_demo.scd`. Make sure the path to the mp3 files are correct. While the cursor is hovering over `s.boot;` on line 1, press ctrl-enter. Once the SC server is booted, hover over the space right before the first open parenthesis on line 4, and press ctrl-enter.
 
-If everything went well, you should hear the amen break sample. The two potentiometers should affect the reverb and delay of the sample, and touching the MPR121 at pin 0 should mute the sample.
+If everything went well, you should see in the SC terminal that CreativeBlocks is ready. The two potentiometers should affect the reverb and tempo of the block's designated instrument, and touching one of the MPR121's pins should unmute that pin's designated sample.
 
 ## Potential Improvements
 
 Using the Colby operated WiFi/ethernet network seems to cause lots of problems. A temporary fix is to use a personal hotspot on your phone, and configure the code to connect to that hotspot.
 
-The SuperCollider code can be run on a computer other than a RPi. The only thing that wouldn't be possible is using the MPR121 connected to the RPi.
+This demo code is currently configured to only manage three blocks, while our original plan was to make four blocks.
+
+The stacking feature also needs to be implemented.
 
 ## References
 
 Installing RPi OS: <https://www.raspberrypi.com/documentation/computers/getting-started.html#installing-the-operating-system>
+
+Raspberry Pi pinout: <https://pinout.xyz/>
+
+MPR121 tutorial: <https://learn.adafruit.com/adafruit-mpr121-12-key-capacitive-touch-sensor-breakout-tutorial>
+
+Arduino Nano ESP32 User Manual: <https://docs.arduino.cc/tutorials/nano-esp32/cheat-sheet/>
 
 Adding device to Colby Guest Access: <https://colby.teamdynamix.com/TDClient/1928/Portal/KB/ArticleDet?ID=146945>
 

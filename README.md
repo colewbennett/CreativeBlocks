@@ -161,6 +161,8 @@ SuperCollider on RPi: <https://github.com/redFrik/supercolliderStandaloneRPI64>
 
 Arduino IDE: <https://www.arduino.cc/en/software/>
 
+More info on Python virtual environments: <https://python.land/virtual-environments/virtualenv>
+
 ## Project Organization
 
 ```

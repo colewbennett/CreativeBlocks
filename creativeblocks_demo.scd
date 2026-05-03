@@ -11,19 +11,19 @@ s.waitForBoot {
 
 	~paths = [
 		[
-			"/home/pi/Downloads/drums1_mono.mp3",
-			"/home/pi/Downloads/vocals1_mono.mp3",
-			"/home/pi/Downloads/mel1_mono.mp3"
+			"/home/pi/CreativeBlocks/audio/drums1_mono.mp3",
+			"/home/pi/CreativeBlocks/audio/vocals1_mono.mp3",
+			"/home/pi/CreativeBlocks/audio/mel1_mono.mp3"
 		],
 		[
-			"/home/pi/Downloads/drums2_mono.mp3",
-			"/home/pi/Downloads/vocals2_mono.mp3",
-			"/home/pi/Downloads/mel2_mono.mp3"
+			"/home/pi/CreativeBlocks/audio/drums2_mono.mp3",
+			"/home/pi/CreativeBlocks/audio/vocals2_mono.mp3",
+			"/home/pi/CreativeBlocks/audio/mel2_mono.mp3"
 		],
 		[
-			"/home/pi/Downloads/drums3_mono.mp3",
-			"/home/pi/Downloads/vocals3_mono.mp3",
-			"/home/pi/Downloads/mel3_mono.mp3"
+			"/home/pi/CreativeBlocks/audio/drums3_mono.mp3",
+			"/home/pi/CreativeBlocks/audio/vocals3_mono.mp3",
+			"/home/pi/CreativeBlocks/audio/mel3_mono.mp3"
 		]
 	];
 

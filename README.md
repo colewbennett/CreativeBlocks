@@ -109,11 +109,11 @@ To test the potentiometers' connectivity, upload the file `potTest.ino` to the N
 
 Connect the Arduino, MPR121, and potentiometers as outlined in the circuit diagram:
 
-![image of the circuit diagram](circuitCLAS.png)
+![image of the circuit diagram](images/circuitCLAS.png)
 
 Run Arduino IDE on your computer and open the file called `blockId.ino`. Make sure the ssid, passphrase, and outIP are configured correctly depending on your WiFi and IP address. Upload the updated code to the Arduino.
 
-Download the file `audio.zip` on the RPi. *Note: add audio files to repo* Run SuperCollider on the RPi and open the file called `creativeblocks_demo.scd`. Make sure the path to the mp3 files are correct. While the cursor is hovering over `s.boot;` on line 1, press ctrl-enter. Once the SC server is booted, hover over the space right before the first open parenthesis on line 4, and press ctrl-enter.
+Run SuperCollider on the RPi by opening the folder **supercolliderStandaloneRPI64** and double clicking `SuperCollider IDE`. Click "Execute in Terminal" when prompted. Open the file called `creativeblocks_demo.scd`. Make sure the path to the mp3 files are correct. While the cursor is hovering over the space right before the first open parenthesis on line 4, press ctrl-enter. This will boot the SC server (scsynth) and run the code.
 
 Then, copy the file `mpr121.py` into the RPi's Desktop, open a terminal, cd into the Desktop, and run the Python code:
 

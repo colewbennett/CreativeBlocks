@@ -1,4 +1,4 @@
-# creativeBlocks
+# CreativeBlocks
 
 <a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
@@ -60,7 +60,7 @@ Then, follow the instructions on this website to register the RPi for Colby Gues
 
 ### Enable I2C on Raspberry Pi
 
-The MPR121 uses I2C, so I2C must be enabled before the touch sensor will work.
+The MPR121 uses I2C, so I2C must be enabled on the RPi before the touch sensor will work.
 
 In the terminal, run:
 
@@ -74,7 +74,9 @@ To confirm the sensor can be detected later, run:
 
 `i2cdetect -y 1`
 
-If the MPR121 is connected correctly, it should usually appear at address 0x5a. To connect the MPR121 to the RPi, refer to this website for the RPi's pinout: <https://pinout.xyz/> and connect the pins shown in the table below:
+If the MPR121 is connected correctly, it should usually appear at address **0x5a**.
+
+To connect the MPR121 to the RPi, refer to this website for the RPi's pinout: <https://pinout.xyz/> and connect the pins shown in the table below:
 
 | MPR121 | RPi               |
 | ------ | ----------------- |
@@ -93,9 +95,9 @@ Follow this link to install the latest Arduino IDE software: <https://www.arduin
 
 Install these from the Arduino IDE:
 
-- Boards Manager
+- **Boards Manager**
   - Arduino ESP32 Boards by Arduino
-- Library Manager
+- **Library Manager**
   - OSC by Adrian Freed
   - Adafruit MPR121 by Adafruit
 
@@ -137,27 +139,29 @@ Then try running mpr121.py again.
 
 If everything went well, you should see in the SC terminal that CreativeBlocks is ready, and in the RPi terminal that the Python code is running. The two potentiometers should affect the reverb and tempo of the block's designated instrument, and touching one of the MPR121's pins should unmute that pin's designated sample.
 
-## Potential Improvements
+## Known Issues and Potential Improvements
 
 Using the Colby operated WiFi/ethernet network seems to cause lots of problems. A temporary fix is to use a personal hotspot on your phone, and configure the code to connect to that hotspot.
 
-This demo code is currently configured to only manage three blocks, while our original plan was to make four blocks.
+This demo code is currently configured to only manage three blocks. We are still in the process of implementing four blocks.
 
 The stacking feature also needs to be implemented.
+
+A potential improvement is to have the SC and Python code run on boot so that a keyboard, mouse, and monitor are not needed.
 
 ## References
 
 Installing RPi OS: <https://www.raspberrypi.com/documentation/computers/getting-started.html#installing-the-operating-system>
+
+Adding device to Colby Guest Access: <https://colby.teamdynamix.com/TDClient/1928/Portal/KB/ArticleDet?ID=146945>
+
+SuperCollider on RPi: <https://github.com/redFrik/supercolliderStandaloneRPI64>
 
 Raspberry Pi pinout: <https://pinout.xyz/>
 
 MPR121 tutorial: <https://learn.adafruit.com/adafruit-mpr121-12-key-capacitive-touch-sensor-breakout-tutorial>
 
 Arduino Nano ESP32 User Manual: <https://docs.arduino.cc/tutorials/nano-esp32/cheat-sheet/>
-
-Adding device to Colby Guest Access: <https://colby.teamdynamix.com/TDClient/1928/Portal/KB/ArticleDet?ID=146945>
-
-SuperCollider on RPi: <https://github.com/redFrik/supercolliderStandaloneRPI64>
 
 Arduino IDE: <https://www.arduino.cc/en/software/>
 

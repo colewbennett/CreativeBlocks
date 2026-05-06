@@ -8,7 +8,7 @@ Making a physical audio workstation.
 
 ## Project overview
 
-Our system consists of four blocks that can be placed on four different pads to make different combinations of samples. Blocks can also be stacked, which expands the creative output of the physical audio workstation. Each block has two knobs that changes the reverb and tempo levels of its designated sample.
+Our system consists of three blocks that can be placed on three different pads to make different combinations of samples. Each pad represents a song, and each block represents a part of a song, for example melody, drums, and vocals. Placing the vocal block on the "Hey Ya" pad will play the vocals from "Hey Ya". Each block has two knobs that changes the reverb and tempo levels of its designated sample. In future iterations, blocks will also be stackable, which expands the creative output of the physical audio workstation by playing two or more parts from the same song.
 
 ## Requirements
 
@@ -33,14 +33,15 @@ Per block:
 - 2 Potentiometers
 - 4-AA battery pack
 - DC barrel power jack
-- Conductive tape
+- Conductive copper tape
 
 ### Software Requirements
 
 - Git
 - Arduino IDE
 - Raspberry Pi Imager
-- SuperCollider (will be installed on RPi - see SuperCollider on RPi)
+- SuperCollider (will be installed on RPi - see [SuperCollider on RPi](#supercollider-on-rpi))
+- Python on RPi (see [Demo Operating Instructions](#demo-operating-instructions))
 
 ## Software Setup
 
@@ -89,6 +90,28 @@ To connect the MPR121 to the RPi, refer to this website for the RPi's pinout: <h
 
 Follow the instructions in this link to install SuperCollider on RPi: <https://github.com/redFrik/supercolliderStandaloneRPI64>
 
+### Python on RPi
+
+Copy the file `mpr121.py` into the RPi's Desktop, open a terminal, cd into the Desktop, and run the Python code:
+
+`python3 mpr121.py`
+
+The first time you attempt this, the terminal may say something about not having a virtual environment and not having the right Python libraries. First create a virtual environment (I'd recommend doing this in the Desktop for easy access):
+
+`python3 -m venv Desktop`
+
+Then activate the venv:
+
+`source ./bin/activate`
+
+Install the required Python libraries:
+
+`pip3 install board`
+
+`pip3 install Adafruit-Blinka`
+
+Then try running mpr121.py again.
+
 ### Arduino IDE
 
 Follow this link to install the latest Arduino IDE software: <https://www.arduino.cc/en/software/>
@@ -107,6 +130,8 @@ To test the MPR121's connectivity, upload the file `MPR121test.ino` to the Nano 
 
 To test the potentiometers' connectivity, upload the file `potTest.ino` to the Nano ESP32 from the Arduino IDE. You should see the readings of the analog pins that are connected to the potentiometers in the serial monitor.
 
+To test the connectivity of the MPR121 to the RPi, run the file `mpr121.py` as described above, in [Python on RPi](#python-on-rpi). You should see which pins are being touched in the terminal.
+
 ## Demo Operating Instructions
 
 Connect the Arduino, MPR121, and potentiometers as outlined in the circuit diagram:
@@ -117,25 +142,7 @@ Run Arduino IDE on your computer and open the file called `blockId.ino`. Make su
 
 Run SuperCollider on the RPi by opening the folder **supercolliderStandaloneRPI64** and double clicking `SuperCollider IDE`. Click "Execute in Terminal" when prompted. Open the file called `creativeblocks_demo.scd`. Make sure the path to the mp3 files are correct. While the cursor is hovering over the space right before the first open parenthesis on line 4, press ctrl-enter. This will boot the SC server (scsynth) and run the code.
 
-Then, copy the file `mpr121.py` into the RPi's Desktop, open a terminal, cd into the Desktop, and run the Python code:
-
-`python3 mpr121.py`
-
-The first time you attempt this, the terminal may say something about not having a virtual environment and not having the right Python libraries. First create a virtual environment (I'd recommend doing this on the Desktop for easy access):
-
-`python3 -m venv Desktop`
-
-Then activate the venv:
-
-`source ./bin/activate`
-
-Install the required Python libraries:
-
-`pip3 install board`
-
-`pip3 install Adafruit-Blinka`
-
-Then try running mpr121.py again.
+Then, open a terminal, cd into the Desktop, and run `python3 mpr121.py`.
 
 If everything went well, you should see in the SC terminal that CreativeBlocks is ready, and in the RPi terminal that the Python code is running. The two potentiometers should affect the reverb and tempo of the block's designated instrument, and touching one of the MPR121's pins should unmute that pin's designated sample.
 
@@ -157,6 +164,16 @@ Adding device to Colby Guest Access: <https://colby.teamdynamix.com/TDClient/192
 
 SuperCollider on RPi: <https://github.com/redFrik/supercolliderStandaloneRPI64>
 
+SC docs: <https://docs.supercollider.online/>
+
+Python libraries:
+
+board: <https://pypi.org/project/board/>
+
+Adafruit-Blinka: <https://pypi.org/project/Adafruit-Blinka/>
+
+More info on Python virtual environments: <https://python.land/virtual-environments/virtualenv>
+
 Raspberry Pi pinout: <https://pinout.xyz/>
 
 MPR121 tutorial: <https://learn.adafruit.com/adafruit-mpr121-12-key-capacitive-touch-sensor-breakout-tutorial>
@@ -165,7 +182,11 @@ Arduino Nano ESP32 User Manual: <https://docs.arduino.cc/tutorials/nano-esp32/ch
 
 Arduino IDE: <https://www.arduino.cc/en/software/>
 
-More info on Python virtual environments: <https://python.land/virtual-environments/virtualenv>
+Arduino libraries:
+
+OSC by Adrian Freed: <https://docs.arduino.cc/libraries/osc/>
+
+Adafruit MPR121 by Adafruit: <https://docs.arduino.cc/libraries/adafruit-mpr121/>
 
 ## Project Organization
 

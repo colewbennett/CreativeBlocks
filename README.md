@@ -168,9 +168,8 @@ SC docs: <https://docs.supercollider.online/>
 
 Python libraries:
 
-board: <https://pypi.org/project/board/>
-
-Adafruit-Blinka: <https://pypi.org/project/Adafruit-Blinka/>
+- board: <https://pypi.org/project/board/>
+- Adafruit-Blinka: <https://pypi.org/project/Adafruit-Blinka/>
 
 More info on Python virtual environments: <https://python.land/virtual-environments/virtualenv>
 
@@ -184,59 +183,48 @@ Arduino IDE: <https://www.arduino.cc/en/software/>
 
 Arduino libraries:
 
-OSC by Adrian Freed: <https://docs.arduino.cc/libraries/osc/>
-
-Adafruit MPR121 by Adafruit: <https://docs.arduino.cc/libraries/adafruit-mpr121/>
+- OSC by Adrian Freed: <https://docs.arduino.cc/libraries/osc/>
+- Adafruit MPR121 by Adafruit: <https://docs.arduino.cc/libraries/adafruit-mpr121/>
 
 ## Project Organization
 
 ```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
+├── arduino                  <- All the Arduino code needed to test and run the project.
 │
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
+├── audio                    <- All the audio files needed to run the project.
 │
-├── models             <- Trained and serialized models, model predictions, or model summaries
+├── docs                     <- A default mkdocs project; see www.mkdocs.org for details
 │
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
+├── images                   <- Images for the README file.
 │
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         creativeblocks and configuration for tools like black
+├── models                   <- Trained and serialized models, model predictions, or model summaries
 │
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
+├── notebooks                <- Jupyter notebooks. Naming convention is a number (for ordering),
+│                               the creator's initials, and a short `-` delimited description, e.g.
+│                               `1.0-jqp-initial-data-exploration`.
 │
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
+├── references               <- Data dictionaries, manuals, and all other explanatory materials.
 │
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
+├── reports                  <- Generated analysis as HTML, PDF, LaTeX, etc.
+│   └── figures              <- Generated graphics and figures to be used in reporting
 │
-├── setup.cfg          <- Configuration file for flake8
+├── Makefile                 <- Makefile with convenience commands like `make data` or `make train`
 │
-└── creativeblocks   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes creativeblocks a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
+├── README.md                <- The top-level README for developers using this project.
+│
+├── __init__.py              <- Makes creativeblocks a Python module
+│
+├── creativeblocks_demo.scd  <- Main SuperCollider code.
+│
+├── mpr121.py                <- Python code for the RPi's MPR121.
+│
+├── pi.scd                   <- Deprecated SuperCollider code.
+│
+├── pyproject.toml           <- Project configuration file with package metadata for 
+│                               creativeblocks and configuration for tools like black
+│
+├── requirements.txt         <- The requirements file for reproducing the analysis environment, e.g.
+│                               generated with `pip freeze > requirements.txt`
 ```
 
 --------

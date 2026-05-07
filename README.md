@@ -10,6 +10,8 @@ Making a physical audio workstation.
 
 Our system consists of three blocks that can be placed on three different pads to make different combinations of samples. Each pad represents a song, and each block represents a part of a song, for example melody, drums, and vocals. Placing the vocal block on the "Hey Ya" pad will play the vocals from "Hey Ya". Each block has two knobs that changes the reverb and tempo levels of its designated sample. In future iterations, blocks will also be stackable, which expands the creative output of the physical audio workstation by playing two or more parts from the same song.
 
+You can find the Instructable for this project here: <https://www.instructables.com/CreativeBlocks-a-Physical-Audio-Workstation/>
+
 ## Requirements
 
 ### Hardware Requirements
@@ -137,6 +139,8 @@ To test the connectivity of the MPR121 to the RPi, run the file `mpr121.py` as d
 Connect the Arduino, MPR121, and potentiometers as outlined in the circuit diagram:
 
 ![image of the circuit diagram](images/circuitCLAS.png)
+
+**Note:** this is the same circuit logic used in the soldering steps of the Instructable (steps 6 and 7).
 
 Run Arduino IDE on your computer and open the file called `blockId.ino`. Make sure the ssid, passphrase, and outIP are configured correctly depending on your WiFi and IP address. Upload the updated code to the Arduino.
 
